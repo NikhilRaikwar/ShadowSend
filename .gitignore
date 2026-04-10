@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.yarn/
+yarn-error.log
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.preprod
+
+# Temporary files
+temp/
+backup/
+*.log
+
+# Build outputs
+dist/
+build/
+contracts/managed/
+
+# Local configuration
+.vscode/
+.idea/
+.DS_Store
+
+# Midnight Specific
+compact-compiler/
+bin/
