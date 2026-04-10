@@ -4,9 +4,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SendPrivatelyTab from "@/components/SendPrivatelyTab";
 import SwapTab from "@/components/SwapTab";
-import BridgeTab from "@/components/BridgeTab";
+import PrivacyDashboard from "@/components/PrivacyDashboard";
 
-const tabs = ["Send Privately", "Swap", "Bridge"] as const;
+const tabs = ["Send Privately", "Swap", "Dashboard"] as const;
 type Tab = (typeof tabs)[number];
 
 const Index = () => {
@@ -57,7 +57,7 @@ const Index = () => {
               >
                 {activeTab === "Send Privately" && <SendPrivatelyTab />}
                 {activeTab === "Swap" && <SwapTab />}
-                {activeTab === "Bridge" && <BridgeTab />}
+                {activeTab === "Dashboard" && <PrivacyDashboard />}
               </motion.div>
             </AnimatePresence>
           </motion.div>

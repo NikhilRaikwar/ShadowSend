@@ -111,3 +111,26 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* ShadowSend Privacy Preview Styles */
+.privacy-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  background: rgba(46, 160, 67, 0.08);
+  border: 0.5px solid rgba(46, 160, 67, 0.2);
+  color: #2ea043;
+  margin-top: 12px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  display: inline-block;
+  margin-right: 4px;
+}
+.dot.green { background: #2ea043; }
+

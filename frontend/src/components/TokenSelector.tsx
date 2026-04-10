@@ -3,8 +3,8 @@ import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const tokens = [
-  { symbol: "tNIGHT", icon: "🌌", name: "Midnight" },
-  { symbol: "tDUST", icon: "🌑", name: "Dust" },
+  { symbol: "tNIGHT", icon: "🌌", name: "Midnight (Testnet)", color: "#7b6ff0" },
+  { symbol: "tDUST",  icon: "🌑", name: "Dust (Testnet)",    color: "#4a9eff" },
 ];
 
 interface TokenSelectorProps {
