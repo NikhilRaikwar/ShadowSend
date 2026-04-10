@@ -1,0 +1,47 @@
+pragma language_version 0.15;
+
+import CompactStandardLibrary;
+
+// -- Types --
+enum ComplianceStatus { Clear, Restricted }
+
+struct ComplianceState {
+  isVerified: Boolean,
+  status: ComplianceStatus,
+}
+
+// -- Ledger (Public State) --
+// Tracks which private identifiers have valid compliance proofs on-chain
+// Map<PrivateID, ComplianceState>
+export ledger complianceRecords: Map<Bytes<32>, ComplianceState>;
+
+// -- Witnesses (Private Inputs — never leave the client) --
+// These provide the private data needed to generate the ZK Proof
+witness getPrivateIdentifier(): Bytes<32>;
+witness getTransferAmount(): Uint<128>;
+
+// -- Circuits (ZK Proof Logic) --
+
+/**
+ * Register a compliance proof for a transfer.
+ * This circuit takes the private transfer amount and proves it meets AML rules (<= 10,000).
+ * It then records the "Verified" status on the ledger for a unique private identifier.
+ */
+export circuit registerCompliance(): [] {
+  const amount = getTransferAmount();
+  const id = getPrivateIdentifier();
+  
+  // Rule: Transfers <= 10,000 are "Clear", otherwise "Restricted"
+  // This is checked inside the Zero-Knowledge circuit. The amount itself is NEVER disclosed.
+  const isClear = amount <= 10000;
+  const status = isClear ? ComplianceStatus.Clear : ComplianceStatus.Restricted;
+  
+  const state: ComplianceState = {
+    isVerified: true,
+    status: status
+  };
+  
+  // Update the public ledger with the proof status.
+  // Note: 'id' is a hash/identifier, not a wallet address, keeping the user anonymous.
+  complianceRecords.insert(disclose(id), state);
+}
