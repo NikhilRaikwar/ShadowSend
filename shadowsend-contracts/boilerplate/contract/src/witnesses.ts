@@ -1,32 +1,56 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { WitnessContext } from '@midnight-ntwrk/compact-runtime';
+import { webcrypto as crypto } from 'node:crypto';
+import type { WitnessContext } from '@midnight-ntwrk/compact-runtime';
 
-// Get __dirname in ESM context
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Get the only folder inside ./managed
-const managedPath = path.join(__dirname, 'managed');
-const [folder] = fs.readdirSync(managedPath).filter(f =>
-  fs.statSync(path.join(managedPath, f)).isDirectory()
-);
-
-// Dynamically import the contract
-const { Ledger } = await import(`./managed/${folder}/contract/index.cjs`);
-
-
-export type CounterPrivateState = {
-  readonly secretKey: Uint8Array; 
+/**
+ * ShadowSend Private State
+ * This data stays localized to the user's proof server.
+ */
+export type ShadowSendPrivateState = {
+  readonly transferAmount:    bigint;
+  readonly privateIdentifier: Uint8Array;
+  readonly isBlacklisted:     boolean;
+  readonly offerId:           Uint8Array;
+  readonly swapAmount:        bigint;
+  readonly receiverAddress:   Uint8Array;
 };
 
-export const createCounterPrivateState = (secretKey: Uint8Array) => ({
-  secretKey,
+export const createInitialState = (): ShadowSendPrivateState => ({
+  transferAmount:    0n,
+  privateIdentifier: crypto.getRandomValues(new Uint8Array(32)),
+  isBlacklisted:     false,
+  offerId:           crypto.getRandomValues(new Uint8Array(32)),
+  swapAmount:        0n,
+  receiverAddress:   new Uint8Array(32),
 });
 
 export const witnesses = {
-  secretKey: ({ privateState }: WitnessContext<typeof Ledger, CounterPrivateState>): [CounterPrivateState, Uint8Array] => {
-    return [privateState, privateState.secretKey];
-  },
+  getTransferAmount: (
+    { privateState }: WitnessContext<any, ShadowSendPrivateState>
+  ): [ShadowSendPrivateState, bigint] =>
+    [privateState, privateState.transferAmount],
+
+  getPrivateIdentifier: (
+    { privateState }: WitnessContext<any, ShadowSendPrivateState>
+  ): [ShadowSendPrivateState, Uint8Array] =>
+    [privateState, privateState.privateIdentifier],
+
+  getIsBlacklisted: (
+    { privateState }: WitnessContext<any, ShadowSendPrivateState>
+  ): [ShadowSendPrivateState, boolean] =>
+    [privateState, privateState.isBlacklisted],
+
+  getOfferId: (
+    { privateState }: WitnessContext<any, ShadowSendPrivateState>
+  ): [ShadowSendPrivateState, Uint8Array] =>
+    [privateState, privateState.offerId],
+
+  getSwapAmount: (
+    { privateState }: WitnessContext<any, ShadowSendPrivateState>
+  ): [ShadowSendPrivateState, bigint] =>
+    [privateState, privateState.swapAmount],
+
+  getReceiverAddressBytes: (
+    { privateState }: WitnessContext<any, ShadowSendPrivateState>
+  ): [ShadowSendPrivateState, Uint8Array] =>
+    [privateState, privateState.receiverAddress],
 };

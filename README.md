@@ -37,7 +37,7 @@ A data-sovereign dashboard where transaction metadata is encrypted and stored lo
 ### Compile Contract (WSL)
 ```bash
 cd shadowsend-contracts
-compactc contracts/src/shadowsend.compact contracts/managed/shadowsend
+compact compile contracts/src/shadowsend.compact contracts/managed/shadowsend
 ```
 
 ### Launch Frontend

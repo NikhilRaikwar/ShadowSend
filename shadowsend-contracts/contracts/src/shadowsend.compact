@@ -1,4 +1,4 @@
-pragma language_version 0.15;
+pragma language_version 0.22.0;
 
 import CompactStandardLibrary;
 
@@ -19,12 +19,12 @@ struct SwapOffer {
   isActive: Boolean,
 }
 
-// -- Ledger (Public States) --
+// -- Ledger --
 export ledger complianceRecords: Map<Bytes<32>, ComplianceState>;
 export ledger activeSwaps: Map<Bytes<32>, SwapOffer>;
 export ledger totalShieldedSends: Uint<128>;
 
-// -- Witnesses (Private User Data) --
+// -- Witnesses --
 witness getPrivateIdentifier(): Bytes<32>;
 witness getTransferAmount(): Uint<128>;
 witness getIsBlacklisted(): Boolean;
@@ -32,33 +32,29 @@ witness getOfferId(): Bytes<32>;
 
 // -- Circuits --
 
-/**
- * Proves AML compliance (amount <= 10,000) using ZK.
- * Emits an anonymous verification status to the public ledger.
- */
-export circuit registerCompliance(): [] {
+export circuit register_compliance(): [] {
   const amount = getTransferAmount();
   const id = getPrivateIdentifier();
   const blacklisted = getIsBlacklisted();
-  
-  // Logic inside ZK: Amount and Blacklist status stay hidden
-  const isClear = (amount <= 10000) && !blacklisted;
-  const status = isClear ? ComplianceStatus.Clear : ComplianceStatus.Restricted;
-  
-  const state: ComplianceState = {
+
+  // FIXED: disclose witness-derived values before they flow into the ledger
+  const isClear = (disclose(amount) <= 10000) && !disclose(blacklisted);
+  const status_val = isClear ? ComplianceStatus.Clear : ComplianceStatus.Restricted;
+
+  const state = ComplianceState {
     isVerified: true,
-    status: status
+    status: status_val
   };
-  
+
   complianceRecords.insert(disclose(id), state);
 }
 
-/**
- * High-performance Shielded Transfer verification.
- * Tracks global send volume without revealing individual amounts.
- */
-export circuit sendShielded(shieldedInput: QualifiedShieldedCoinInfo, recipient: ZswapCoinPublicKey, value: Uint<128>): ShieldedSendResult {
-  totalShieldedSends = totalShieldedSends + disclose(value);
+export circuit perform_shielded_send(
+  shieldedInput: QualifiedShieldedCoinInfo,
+  recipient: ZswapCoinPublicKey,
+  value: Uint<128>
+): ShieldedSendResult {
+  totalShieldedSends = (totalShieldedSends + disclose(value)) as Uint<128>;
   return sendShielded(
     disclose(shieldedInput),
     left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
@@ -66,19 +62,19 @@ export circuit sendShielded(shieldedInput: QualifiedShieldedCoinInfo, recipient:
   );
 }
 
-/**
- * Vault intake for "Privacy Cash" style mixing.
- */
-export circuit receiveShieldedDeposit(coin: ShieldedCoinInfo): [] {
+export circuit deposit_shielded(coin: ShieldedCoinInfo): [] {
   receiveShielded(disclose(coin));
 }
 
-/**
- * Initiate a private atomic swap offer.
- */
-export circuit initiateSwap(offerer: ZswapCoinPublicKey, assetIn: Bytes<32>, amountIn: Uint<128>, assetOut: Bytes<32>, amountOut: Uint<128>): [] {
+export circuit create_swap_offer(
+  offerer: ZswapCoinPublicKey,
+  assetIn: Bytes<32>,
+  amountIn: Uint<128>,
+  assetOut: Bytes<32>,
+  amountOut: Uint<128>
+): [] {
   const offerId = getOfferId();
-  const offer: SwapOffer = {
+  const offer = SwapOffer {
     offerer: disclose(offerer),
     assetIn: disclose(assetIn),
     amountIn: disclose(amountIn),
@@ -89,9 +85,10 @@ export circuit initiateSwap(offerer: ZswapCoinPublicKey, assetIn: Bytes<32>, amo
   activeSwaps.insert(disclose(offerId), offer);
 }
 
-export circuit cancelSwap(offerId: Bytes<32>): [] {
-  const offer = activeSwaps.get(disclose(offerId));
-  const updatedOffer: SwapOffer = {
+export circuit cancel_swap_offer(offerId: Bytes<32>): [] {
+  const offer = activeSwaps.lookup(disclose(offerId));
+
+  const updatedOffer = SwapOffer {
     offerer: offer.offerer,
     assetIn: offer.assetIn,
     amountIn: offer.amountIn,
@@ -102,7 +99,6 @@ export circuit cancelSwap(offerId: Bytes<32>): [] {
   activeSwaps.insert(disclose(offerId), updatedOffer);
 }
 
-export circuit completeSwap(offerId: Bytes<32>): [] {
-  // Settlement logic verified privately then results published
+export circuit settle_swap(offerId: Bytes<32>): [] {
   activeSwaps.remove(disclose(offerId));
 }

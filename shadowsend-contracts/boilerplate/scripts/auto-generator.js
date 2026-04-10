@@ -174,11 +174,11 @@ class CompactCLIAutoGenerator {
     errors.push('❌ Boilerplate directory not found. This doesn\'t appear to be a scaffold-midnight project.');
   }
   
-  // Check for compactc compiler
+  // Check for compact compiler
   try {
-    execSync('which compactc', { stdio: 'ignore' });
+    execSync('compact --version', { stdio: 'ignore' });
   } catch (error) {
-    errors.push('❌ Compact compiler (compactc) not found. Please install the Midnight development tools.');
+    errors.push('❌ Compact compiler (compact) not found. Please install the Midnight development tools.');
   }
   
   if (errors.length > 0) {
@@ -303,7 +303,8 @@ class CompactCLIAutoGenerator {
     const contractName = path.basename(this.config.contractFileName, '.compact');
     const outputDir = path.join(this.config.contractSourceDir, 'managed', contractName);
 
-    await this.runCommand('compactc', [
+    await this.runCommand('compact', [
+      'compile',
       path.join(this.config.contractSourceDir, this.config.contractFileName),
       outputDir
     ], contractDir);

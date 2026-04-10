@@ -12,10 +12,10 @@ if (!compactFile) throw new Error("No .compact file found in current directory")
 const contractBaseName = path.basename(compactFile, ".compact"); 
 const contractNameCapitalized = contractBaseName[0].toUpperCase() + contractBaseName.slice(1);
 
-const contractPath = `./managed/${contractBaseName}/contract/index.cjs`;
+const contractPath = `./managed/${contractBaseName}/contract/index.js`;
 const contractModule = await import(contractPath);
 
-export * from "./witnesses";
+export * from "./witnesses.js";
 
 export const contracts = {
   [contractNameCapitalized]: contractModule

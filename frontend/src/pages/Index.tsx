@@ -19,12 +19,12 @@ const Index = () => {
       <main className="flex-1 flex items-center justify-center px-4 pt-20 pb-8">
         <div className="w-[92%] sm:w-full max-w-md">
           {/* Tab switcher */}
-          <div className="flex items-center justify-center gap-1 mb-4">
+          <div className="flex items-center justify-center gap-1 mb-4 relative z-[100]">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-5 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`relative px-5 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                   activeTab === tab
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"

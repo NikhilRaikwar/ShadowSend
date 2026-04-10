@@ -2,12 +2,15 @@
   "include": ["src/**/*.ts"],
   "compilerOptions": {
     // "rootDir": "src",
+    "rootDir": "src",
     "outDir": "dist",
+    "ignoreDeprecations": "6.0",
+    "types": ["node"],
     "declaration": true,
     "lib": ["ESNext"],
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "node16",
+    "moduleResolution": "node16",
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
@@ -16,10 +19,6 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "@contract/*": ["../../contract/src/*"]
-    }
+    "skipLibCheck": true
   }
 }

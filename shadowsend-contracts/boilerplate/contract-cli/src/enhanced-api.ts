@@ -1,6 +1,6 @@
-// Enhanced API wrapper for Counter Contract
-// Generated on: 2025-06-13T22:15:31.852Z
-// Auto-generated from counter.compact
+// Enhanced API wrapper for Shadowsend Contract
+// Generated on: 2026-04-10T19:37:27.152Z
+// Auto-generated from shadowsend.compact
 
 import { type Logger } from 'pino';
 import { ContractAnalyzer } from './contract-analyzer.js';
@@ -87,101 +87,147 @@ export class EnhancedContractAPI {
 
   // Dynamic function mapping based on contract analysis
   /**
-   * Execute increment function
+   * Execute register_compliance function
    */
-  async increment(...args: any[]): Promise<any> {
-    return await (originalApi as any).increment(...args);
+  async register_compliance(...args: any[]): Promise<any> {
+    return await (originalApi as any).register_compliance(...args);
   }
   /**
-   * Execute vote_for function
+   * Execute perform_shielded_send function
    */
-  async vote_for(...args: any[]): Promise<any> {
-    return await (originalApi as any).vote_for(...args);
+  async perform_shielded_send(...args: any[]): Promise<any> {
+    return await (originalApi as any).perform_shielded_send(...args);
   }
   /**
-   * Execute get_vote_count function
+   * Execute deposit_shielded function
    */
-  async get_vote_count(...args: any[]): Promise<any> {
-    return await (originalApi as any).get_vote_count(...args);
+  async deposit_shielded(...args: any[]): Promise<any> {
+    return await (originalApi as any).deposit_shielded(...args);
   }
   /**
-   * Execute public_key_vote function
+   * Execute create_swap_offer function
    */
-  async public_key_vote(...args: any[]): Promise<any> {
-    return await (originalApi as any).public_key_vote(...args);
+  async create_swap_offer(...args: any[]): Promise<any> {
+    return await (originalApi as any).create_swap_offer(...args);
+  }
+  /**
+   * Execute cancel_swap_offer function
+   */
+  async cancel_swap_offer(...args: any[]): Promise<any> {
+    return await (originalApi as any).cancel_swap_offer(...args);
+  }
+  /**
+   * Execute settle_swap function
+   */
+  async settle_swap(...args: any[]): Promise<any> {
+    return await (originalApi as any).settle_swap(...args);
   }
 }
 
 // Export contract metadata for reference
 export const CONTRACT_METADATA = {
-  name: 'Counter Contract',
-  fileName: 'counter.compact',
-  generatedAt: '2025-06-13T22:15:31.852Z',
+  name: 'Shadowsend Contract',
+  fileName: 'shadowsend.compact',
+  generatedAt: '2026-04-10T19:37:27.152Z',
   functions: [
   {
-    "name": "increment",
+    "name": "register_compliance",
     "parameters": [],
     "returnType": "[]",
     "readOnly": false
   },
   {
-    "name": "vote_for",
+    "name": "perform_shielded_send",
     "parameters": [
       {
-        "name": "secret_key",
-        "type": "Bytes<3>"
+        "name": "shieldedInput",
+        "type": "QualifiedShieldedCoinInfo"
       },
       {
-        "name": "index",
-        "type": "Uint<8>"
+        "name": "recipient",
+        "type": "ZswapCoinPublicKey"
+      },
+      {
+        "name": "value",
+        "type": "Uint<128>"
+      }
+    ],
+    "returnType": "ShieldedSendResult",
+    "readOnly": true
+  },
+  {
+    "name": "deposit_shielded",
+    "parameters": [
+      {
+        "name": "coin",
+        "type": "ShieldedCoinInfo"
       }
     ],
     "returnType": "[]",
     "readOnly": false
   },
   {
-    "name": "get_vote_count",
+    "name": "create_swap_offer",
     "parameters": [
       {
-        "name": "index",
-        "type": "Uint<8>"
-      }
-    ],
-    "returnType": "Uint<64>",
-    "readOnly": true
-  },
-  {
-    "name": "public_key_vote",
-    "parameters": [
-      {
-        "name": "sk",
-        "type": "Bytes<3>"
+        "name": "offerer",
+        "type": "ZswapCoinPublicKey"
       },
       {
-        "name": "instance",
-        "type": "Bytes<3>"
+        "name": "assetIn",
+        "type": "Bytes<32>"
+      },
+      {
+        "name": "amountIn",
+        "type": "Uint<128>"
+      },
+      {
+        "name": "assetOut",
+        "type": "Bytes<32>"
+      },
+      {
+        "name": "amountOut",
+        "type": "Uint<128>"
       }
     ],
-    "returnType": "Bytes<32>",
-    "readOnly": true
+    "returnType": "[]",
+    "readOnly": false
+  },
+  {
+    "name": "cancel_swap_offer",
+    "parameters": [
+      {
+        "name": "offerId",
+        "type": "Bytes<32>"
+      }
+    ],
+    "returnType": "[]",
+    "readOnly": false
+  },
+  {
+    "name": "settle_swap",
+    "parameters": [
+      {
+        "name": "offerId",
+        "type": "Bytes<32>"
+      }
+    ],
+    "returnType": "[]",
+    "readOnly": false
   }
 ],
   ledgerState: [
   {
-    "name": "round",
-    "type": "Counter"
+    "name": "complianceRecords",
+    "type": "Map<Bytes<32>, ComplianceState>"
   },
   {
-    "name": "votesA",
-    "type": "Counter"
+    "name": "activeSwaps",
+    "type": "Map<Bytes<32>, SwapOffer>"
   },
   {
-    "name": "votesB",
-    "type": "Counter"
-  },
-  {
-    "name": "items",
-    "type": "Set<Bytes<32>>"
+    "name": "totalShieldedSends",
+    "type": "Uint<128>"
   }
 ],
   witnesses: []
