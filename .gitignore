@@ -1,29 +1,13 @@
-# Dependencies
-node_modules/
-.yarn/
-yarn-error.log
-package-lock.json
-
-# Environment
-.env
-.env.local
-.env.preprod
-
-# Temporary files
-temp/
-backup/
-*.log
-
-# Build outputs
-dist/
-build/
-contracts/managed/
-
-# Local configuration
-.vscode/
-.idea/
+node_modules
 .DS_Store
+dist
+dist-ssr
+*.local
+.env
+.env.*
+! .env.example
 
-# Midnight Specific
-compact-compiler/
-bin/
+# ShadowSend specific
+shadowsend-contracts/
+shadowsend-contracts/*
+temp/

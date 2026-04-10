@@ -1,58 +1,67 @@
-# 🌌 ShadowSend | The Elite Privacy Layer for Midnight
+# 🌑 ShadowSend: Privacy-First DeFi on Midnight
 
-**ShadowSend** is a next-generation private remittance and atomic swap platform built natively on the **Midnight Network**. 
+[![Midnight Network](https://img.shields.io/badge/Network-Midnight%20Preprod-blueviolet?style=for-the-badge&logo=polkadot)](https://midnight.network)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Build Status](https://img.shields.io/badge/Shielding-Active-emerald?style=for-the-badge&logo=securityscorecard)](https://shadowsend.app)
 
-> "Privacy by default, Compliance by design."
+**ShadowSend** is a next-generation privacy dApp built on the **Midnight Network**. It leverages Zero-Knowledge (ZK) proofs to enable anonymous asset transfers and atomic swaps, ensuring that your financial data remains your own business.
 
-ShadowSend transforms how users interact with DeFi by providing a seamless, "WhatsApp-style" interface for confidential transfers and swaps, powered by state-of-the-art Zero-Knowledge proofs.
-
-## 🏆 Hackathon Pitch (Finance & DeFi Track)
-Most privacy solutions are bolted on top of public chains, leading to complex UX and high gas costs. **ShadowSend** leverages Midnight's native Zswap protocol and Compact smart contracts to deliver a "Privacy Cash" experience where:
-- **Amounts are hidden** by default.
-- **Recipients are anonymous** via the Shadow Layer.
-- **Compliance is baked-in** via on-chain ZK verification tokens that verify identity without revealing data.
+---
 
 ## 🚀 Key Features
 
-### 1. 🛡️ Send Privately (Hero Feature)
-A mobile-first, minimalist interface for 1:N shielded distributions. 
-- **ZK Compliance**: Automatically proves AML verification (Amount <= 10,000) using the `disclose()` circuit. 
-- **Privacy Meter**: Real-time visual feedback of the ZK protection status.
-
-### 2. ⚡ Private Atomic Swaps
-Confidential P2P trading between **tNIGHT** and **tDUST**.
-- **Atomic Settlement**: Uses Midnight's `initSwap` orchestration to ensure trustless exchanges without identity exposure.
-
-### 3. 📊 Shadow History & Dashboard
-A data-sovereign dashboard where transaction metadata is encrypted and stored locally in **IndexedDB**. 
-- **Zero Server Storage**: Your financial history never leaves your device. Only the user can view their decrypted shadow logs.
-
-## 🏗️ Technical Architecture
-- **Compact Contracts**: 6 custom ZK circuits (`registerCompliance`, `sendShielded`, `initiateSwap`, etc.).
-- **Midnight SDK**: High-performance integration with the Lace Wallet + DApp Connector.
-- **Proof Server**: Powered by Midnight's local proof generation to ensure private witnesses never leave the client.
-
-## 🛠️ Setup & Deployment
-
-### Compile Contract (WSL)
-```bash
-cd shadowsend-contracts
-compact compile contracts/src/shadowsend.compact contracts/managed/shadowsend
-```
-
-### Launch Frontend
-```bash
-cd frontend
-yarn install
-yarn dev --port 3001
-```
-
-## 📜 Roadmap
-- [x] Multi-recipient Shielded Sending
-- [x] On-chain ZK Compliance Circuits
-- [x] IndexedDB Shadow History
-- [ ] Cross-chain Shielded Bridge (Coming Soon)
-- [ ] Dark Mode 2.0 (Neon Midnight)
+- **🔒 Shielded Transfers**: Send tokens privately where recipient and amount are cryptographically hidden.
+- **⚛️ Atomic Swaps**: Exchange assets privately without intermediaries using ZK intent-based swaps.
+- **📊 Privacy Dashboard**: Real-time breakdown of your shielded vs. unshielded balances on Midnight Preprod.
+- **⚡ Seamless Integration**: Directly powered by the **Midnight Lace DApp Connector**—no custom contract deployment needed for end-users.
+- **🛰️ Snark-Powered Security**: Every transaction is verified via ZK-SNARKs before hitting the blockchain.
 
 ---
-*Built for the Midnight Network Hackathon 2026.*
+
+## 🛠️ Technology Stack
+
+| Component | Technology |
+| :--- | :--- |
+| **Blockchain** | Midnight Network (Preprod Testnet) |
+| **Wallet** | Midnight Lace (Official DApp Connector) |
+| **Zero-Knowledge** | Compact / ZK-SNARKs |
+| **Frontend** | React, TypeScript, Tailwind CSS, Framer Motion |
+| **Icons** | Lucide React |
+
+---
+
+## 📦 Installation & Setup
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/NikhilRaikwar/ShadowSend.git
+   cd ShadowSend/frontend
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   yarn install
+   ```
+
+3. **Required Environment**
+   - Install the **Midnight Lace Wallet** extension.
+   - Switch to **Midnight Preprod** network.
+   - Ensure your **Midnight Indexer** and **Prover** services are running locally or pointed to preprod.
+
+4. **Launch Application**
+   ```bash
+   yarn dev --port 3001
+   ```
+
+---
+
+## 🛡️ Security First
+
+ShadowSend never stores your private keys or seed phrases. All signing and ZK proof generation occur natively within the **Midnight Lace Wallet**, ensuring a non-custodial and trustless experience.
+
+## 🤝 Project Status: Hackathon Submission
+
+Built with ❤️ for the Midnight Network Hackathon. Our goal is to make privacy a default feature, not an afterthought, in the decentralized finance space.
+
+---
+© 2026 ShadowSend Team. Protected by Midnight ZK.

@@ -1,118 +1,133 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { interval, filter, take, firstValueFrom, timeout, map, concatMap, catchError, throwError } from 'rxjs';
+import { toast } from "sonner";
 
-type WalletState = "not-installed" | "disconnected" | "connecting" | "connected" | "rejected" | "timeout";
+type WalletState = "disconnected" | "connecting" | "connected" | "error";
 
 interface WalletContextType {
   state: WalletState;
   shieldedAddress: string;
   isConnected: boolean;
   balances: Record<string, string>;
+  transactions: any[];
   indexerUri: string;
   proverServerUri: string;
+  walletAPI: any;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
+  refreshAll: () => Promise<void>;
+  addPendingTx: (hash: string, type: string) => void;
 }
 
-const MidnightWalletContext = createContext<WalletContextType | null>(null);
-
-export const useMidnightWallet = () => {
-  const ctx = useContext(MidnightWalletContext);
-  if (!ctx) throw new Error("useMidnightWallet must be used within MidnightWalletProvider");
-  return ctx;
-};
+const MidnightWalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<WalletState>("disconnected");
   const [shieldedAddress, setShieldedAddress] = useState("");
-  const [indexerUri, setIndexerUri] = useState("");
-  const [proverServerUri, setProverServerUri] = useState("");
   const [balances, setBalances] = useState<Record<string, string>>({});
+  const [transactions, setTransactions] = useState<any[]>([]); 
   const [walletAPI, setWalletAPI] = useState<any>(null);
 
-  const updateBalances = useCallback(async (api: any) => {
+  const indexerUri = "https://indexer.preprod.midnight.network/api/v3/graphql";
+  const proverServerUri = "http://localhost:6300";
+
+  // Function to manually add a transaction hash to the list (for immediate feedback)
+  const addPendingTx = useCallback((hash: string, type: string) => {
+    setTransactions(prev => [{
+      txHash: hash,
+      blockHeight: null, // Pending status
+      metadata: { type }
+    }, ...prev]);
+  }, []);
+
+  const refreshAll = useCallback(async (apiOverride?: any) => {
+    const api = apiOverride || walletAPI;
+    if (!api) return;
     try {
       const shielded = await api.getShieldedBalances();
       const unshielded = await api.getUnshieldedBalances();
-      const dust = await api.getDustBalance();
-
-      const NATIVE_ASSET_ID = "0000000000000000000000000000000000000000000000000000000000000000";
-
-      const getVal = (val: any) => {
-        if (typeof val === 'bigint') return val;
-        if (typeof val === 'number') return BigInt(val);
-        if (typeof val === 'object' && val !== null) {
-          if ('amount' in val) return BigInt(val.amount);
-          if ('balance' in val) return BigInt(val.balance);
-        }
-        if (typeof val === 'string') return BigInt(val);
-        return 0n;
-      };
-
-      const newBalances: Record<string, string> = {
-        // We sum shielded and unshielded for the real total tNIGHT balance
-        tNIGHT: ((getVal(shielded[NATIVE_ASSET_ID]) + getVal(unshielded[NATIVE_ASSET_ID])) / 1000000n).toString(),
-        tDUST: (getVal(dust) / 1000000n).toString()
-      };
-      setBalances(newBalances);
-    } catch (e) {
-      console.error("Failed to fetch balances", e);
-    }
-  }, []);
-
-  const connectWallet = useCallback(async () => {
-    setState("connecting");
-    try {
-      const result = await firstValueFrom(
-        interval(200).pipe(
-          map(() => {
-            const midnight = (window as any).midnight;
-            if (!midnight) return undefined;
-            return midnight.mnLace || Object.values(midnight)[0];
-          }),
-          filter((initialAPI): initialAPI is any => !!initialAPI),
-          take(1),
-          timeout({
-            first: 5000,
-            with: () => throwError(() => new Error('timeout')),
-          }),
-          concatMap(async (initialAPI) => {
-            const connectedAPI = await initialAPI.connect('preprod');
-            return connectedAPI;
-          })
-        )
-      );
-
-      setWalletAPI(result);
-      const config = await result.getConfiguration();
-      const addresses = await result.getShieldedAddresses();
-
-      setShieldedAddress(addresses.shieldedAddress);
-      setIndexerUri(config.indexerUri);
-      setProverServerUri(config.proverServerUri);
       
-      await updateBalances(result);
-      setState("connected");
-    } catch (err: any) {
-      console.error(err);
-      setState(err?.message === "timeout" ? "timeout" : "rejected");
-      setTimeout(() => setState("disconnected"), 3000);
+      const getVal = (bal: any) => {
+        const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
+        const val = bal[NATIVE_ID] || bal['native'] || Object.values(bal)[0];
+        if (!val) return 0n;
+        return typeof val === 'object' ? BigInt(val.amount || 0) : BigInt(val);
+      };
+
+      const sVal = getVal(shielded);
+      const uVal = getVal(unshielded);
+
+      setBalances({
+        tNIGHT: (Number(sVal + uVal) / 1_000_000).toFixed(2),
+        tNIGHT_SHIELDED: (Number(sVal) / 1_000_000).toFixed(2),
+        tNIGHT_UNSHIELDED: (Number(uVal) / 1_000_000).toFixed(2),
+      });
+
+      // Try fetching real history if possible, else we keep our local session txs
+      try {
+        const history = await api.getTransactions();
+        if (history && history.length > 0) {
+          setTransactions(prev => {
+            // Merge local pending with real history, avoiding duplicates
+            const realTxs = history.map((h: any) => ({ ...h, metadata: h.metadata || { type: 'shielded' } }));
+            const pendingOnly = prev.filter(p => !realTxs.find((r: any) => r.txHash === p.txHash));
+            return [...pendingOnly, ...realTxs].slice(0, 10);
+          });
+        }
+      } catch (e) {
+        // Silent: Some Lace versions don't expose history yet
+      }
+
+    } catch (e) {
+      console.warn("Auto-refresh fail:", e);
     }
-  }, [updateBalances]);
+  }, [walletAPI]);
+
+  const connectWallet = async () => {
+    try {
+      setState("connecting");
+      const win = window as any;
+      const provider = [
+        win.midnight?.mnLace,
+        win.cardano?.midnight,
+        ...(win.midnight ? Object.values(win.midnight) : [])
+      ].find(p => typeof p?.connect === 'function');
+
+      if (!provider) {
+        toast.error("Midnight Lace not found!");
+        setState("disconnected");
+        return;
+      }
+
+      const connectedApi = await provider.connect('preprod');
+      const addresses = await connectedApi.getShieldedAddresses();
+      
+      setShieldedAddress(addresses.shieldedAddress);
+      setWalletAPI(connectedApi);
+      await refreshAll(connectedApi);
+      
+      setState("connected");
+      toast.success("Identity Shielded!");
+    } catch (e: any) {
+      setState("error");
+      toast.error(`Offline: ${e.message}`);
+    }
+  };
+
+  const disconnectWallet = () => {
+    setState("disconnected");
+    setShieldedAddress("");
+    setWalletAPI(null);
+    setBalances({});
+    setTransactions([]);
+    toast.info("Connection Terminated");
+  };
 
   useEffect(() => {
     if (state === "connected" && walletAPI) {
-      const poller = setInterval(() => updateBalances(walletAPI), 10000);
-      return () => clearInterval(poller);
+      const interval = setInterval(() => refreshAll(), 10000); 
+      return () => clearInterval(interval);
     }
-  }, [state, walletAPI, updateBalances]);
-
-  const disconnectWallet = useCallback(() => {
-    setState("disconnected");
-    setShieldedAddress("");
-    setBalances({});
-    setWalletAPI(null);
-  }, []);
+  }, [state, walletAPI, refreshAll]);
 
   return (
     <MidnightWalletContext.Provider
@@ -121,13 +136,25 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
         shieldedAddress,
         isConnected: state === "connected",
         balances,
+        transactions,
         indexerUri,
         proverServerUri,
+        walletAPI,
         connectWallet,
         disconnectWallet,
+        refreshAll,
+        addPendingTx
       }}
     >
       {children}
     </MidnightWalletContext.Provider>
   );
+};
+
+export const useMidnightWallet = () => {
+  const context = useContext(MidnightWalletContext);
+  if (context === undefined) {
+    throw new Error("useMidnightWallet must be used within a MidnightWalletProvider");
+  }
+  return context;
 };
