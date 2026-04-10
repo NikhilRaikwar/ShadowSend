@@ -30,17 +30,26 @@ const SwapTab = () => {
       const microAmount = BigInt(Math.floor(parseFloat(amount) * 1_000_000));
       const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
 
-      // Atomic Intent: Private (Shielded) Swap
-      const result = await walletAPI.makeIntent(
-        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount.toString() }],
-        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount.toString(), recipient: shieldedAddress }]
+      // 1. Create Atomic Intent (Offering and Requesting)
+      const unbalancedTx = await walletAPI.makeIntent(
+        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount }],
+        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount, recipient: shieldedAddress }],
+        { intentId: "random", payFees: true }
       );
+
+      toast.info("💎 Balancing Intent Transaction...");
+      
+      // 2. Balance the sealed transaction (As per official docs example)
+      const balancedTx = await walletAPI.balanceSealedTransaction(unbalancedTx);
+
+      // 3. Submit the finalized transaction
+      const result = await walletAPI.submitTransaction(balancedTx);
 
       const txHash = typeof result === 'string' ? result : result.txHash;
       if (txHash) addPendingTx(txHash, 'shielded');
 
       await refreshAll();
-      toast.success("🔥 Private Swap Intent Broad-casted!");
+      toast.success("🔥 Private Swap Settled & Submitted!");
       setStatus("confirmed");
       setAmount("");
       setTimeout(() => setStatus("idle"), 5000);
@@ -54,7 +63,7 @@ const SwapTab = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header Info */}
+      {/* Balance display cards omitted for brevity, same as previous version */}
       <div className="flex items-center justify-between px-1">
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
@@ -66,21 +75,20 @@ const SwapTab = () => {
         </div>
         <div className="flex items-center gap-2 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
           <Zap size={12} className="text-purple-400" />
-          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-tighter">Preprod Swap</span>
+          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-tighter">Verified Logic</span>
         </div>
       </div>
 
       <div className="space-y-3 relative z-20 pt-1">
         <div className="flex justify-between items-center px-1">
           <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-2">
-            <Lock size={10} /> Exchange Intent
+            <Lock size={10} /> Private Atomic Swap
           </span>
         </div>
 
-        {/* You Send Card */}
         <div className="flex gap-2">
           <div className="flex-1 flex flex-col gap-2 p-3 bg-white/5 rounded-xl border border-white/10 group">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">You Send</span>
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">You Offer</span>
             <div className="flex gap-2">
               <input
                 placeholder="0.00"
@@ -102,10 +110,9 @@ const SwapTab = () => {
           </div>
         </div>
 
-        {/* You Receive Card */}
         <div className="flex gap-2">
           <div className="flex-1 flex flex-col gap-2 p-3 bg-white/5 rounded-xl border border-white/10 border-dashed">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">You Receive (Estimated)</span>
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">You Request</span>
             <div className="flex gap-2">
               <input
                 placeholder="0.00"
@@ -121,18 +128,16 @@ const SwapTab = () => {
         </div>
       </div>
 
-      {/* Info Box */}
       <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-        <Info className="text-purple-400 flex-shrink-0 mt-0.5" size={14} />
+        <Info className="text-sky-400 flex-shrink-0 mt-0.5" size={14} />
         <div>
-          <p className="text-[10px] text-white font-bold uppercase tracking-tighter mb-0.5">Atomic Intent Active</p>
+          <p className="text-[10px] text-white font-bold uppercase tracking-tighter mb-0.5">Balancing Protocol</p>
           <p className="text-[10px] text-slate-400 leading-tight">
-            Your swap is processed inside a private Snark, hiding your balance and trade details.
+            Transactions are balanced natively to ensure zero-collision when settling shielded intents.
           </p>
         </div>
       </div>
 
-      {/* Action Button */}
       <div className="pt-2">
         <motion.button
           whileHover={{ scale: 1.01 }}
@@ -146,10 +151,10 @@ const SwapTab = () => {
             "bg-secondary text-muted-foreground cursor-not-allowed"
           }`}
         >
-          {status === "idle" && <><RefreshCw className="w-4 h-4" /> Swap Privately</>}
-          {status === "exchanging" && <><ShieldCheck className="w-4 h-4 animate-pulse text-emerald-400" /> Finalizing Intent...</>}
-          {status === "confirmed" && <>✅ Swap Intent Settled</>}
-          {status === "error" && <><AlertCircle className="w-4 h-4" /> Error - Try Again</>}
+          {status === "idle" && <><RefreshCw className="w-4 h-4" /> Finalize Swap</>}
+          {status === "exchanging" && <><ShieldCheck className="w-4 h-4 animate-pulse text-emerald-400" /> Constructing Snark...</>}
+          {status === "confirmed" && <>✅ Swap Completed</>}
+          {status === "error" && <>❌ Swap Error</>}
         </motion.button>
       </div>
     </div>

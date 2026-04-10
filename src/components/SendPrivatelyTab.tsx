@@ -67,8 +67,8 @@ const SendPrivatelyTab = () => {
         
         return {
           kind: detectKind,
-          type: NATIVE_ID, 
-          value: BigInt(Math.floor(parseFloat(r.amount) * 1_000_000)).toString(), // Pass as string to avoid polyfill object issues
+          tokenType: NATIVE_ID, 
+          value: BigInt(Math.floor(parseFloat(r.amount) * 1_000_000)), 
           recipient: trimmedAddr
         };
       });

@@ -46,20 +46,25 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
       const shielded = await api.getShieldedBalances();
       const unshielded = await api.getUnshieldedBalances();
       
-      const getVal = (bal: any) => {
+      const getVal = (bal: any, id?: string) => {
         const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
-        const val = bal[NATIVE_ID] || bal['native'] || Object.values(bal)[0];
+        const DUST_ID = "0000000000000000000000000000000000000000000000000000000000000002"; // Common DUST ID
+        
+        const targetId = id || NATIVE_ID;
+        const val = bal[targetId] || bal['native'] || (id ? 0 : Object.values(bal)[0]);
         if (!val) return 0n;
         return typeof val === 'object' ? BigInt(val.amount || 0) : BigInt(val);
       };
 
       const sVal = getVal(shielded);
       const uVal = getVal(unshielded);
+      const sDust = getVal(shielded, "0000000000000000000000000000000000000000000000000000000000000002");
 
       setBalances({
         tNIGHT: (Number(sVal + uVal) / 1_000_000).toFixed(2),
         tNIGHT_SHIELDED: (Number(sVal) / 1_000_000).toFixed(2),
         tNIGHT_UNSHIELDED: (Number(uVal) / 1_000_000).toFixed(2),
+        tDUST: (Number(sDust) / 1_000_000).toFixed(2),
       });
 
       // Try fetching real history if possible, else we keep our local session txs
