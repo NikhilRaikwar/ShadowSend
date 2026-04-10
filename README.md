@@ -15,10 +15,10 @@
 
 | Resource | Link |
 | :--- | :--- |
-| 🎬 **Demo Video** | *(Submit link)* |
-| 📊 **Presentation (PPT)** | *(Submit link)* |
+| 🎬 **Demo Video** | *[ShadowSend Video](https://docs.google.com/presentation/d/1h4nY2MAzta08UREP494CqoZyVh64QY7e/edit?usp=sharing&ouid=110120696689077664393&rtpof=true&sd=true)* |
+| 📊 **Presentation (PPT)** | *[ShadowSend](https://docs.google.com/presentation/d/1h4nY2MAzta08UREP494CqoZyVh64QY7e/edit?usp=sharing&ouid=110120696689077664393&rtpof=true&sd=true)* |
 | 🐙 **GitHub** | [NikhilRaikwar/ShadowSend](https://github.com/NikhilRaikwar/ShadowSend) |
-| 🌐 **Live Demo** | *(Deployed URL)* |
+| 🌐 **Live Demo** | *https://shadowsend.vercel.app/* |
 
 ---
 
