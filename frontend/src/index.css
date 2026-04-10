@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 92%;
+
+    --card: 222 40% 10%;
+    --card-foreground: 210 40% 92%;
+
+    --popover: 222 40% 10%;
+    --popover-foreground: 210 40% 92%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 220 30% 16%;
+    --secondary-foreground: 210 40% 85%;
+
+    --muted: 220 25% 14%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    --neon-blue: 217 91% 60%;
+    --neon-blue-glow: 217 100% 70%;
+    --glass-bg: 222 40% 10%;
+    --glass-border: 220 20% 22%;
+    --glass-highlight: 220 30% 25%;
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 92%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 220 30% 16%;
+    --sidebar-accent-foreground: 210 40% 85%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card/60 backdrop-blur-xl border border-glass-border rounded-2xl;
+  }
+
+  .glass-input {
+    @apply bg-muted/50 backdrop-blur-sm border border-glass-border rounded-xl;
+  }
+
+  .neon-glow {
+    box-shadow: 0 0 20px hsl(var(--neon-blue) / 0.3), 0 0 40px hsl(var(--neon-blue) / 0.1);
+  }
+
+  .neon-glow-sm {
+    box-shadow: 0 0 10px hsl(var(--neon-blue) / 0.2);
+  }
+
+  .neon-glow-lg {
+    box-shadow: 0 0 30px hsl(var(--neon-blue) / 0.4), 0 0 60px hsl(var(--neon-blue) / 0.15);
+  }
+
+  .gradient-bg {
+    background: radial-gradient(ellipse at 50% 0%, hsl(var(--neon-blue) / 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, hsl(270 60% 50% / 0.04) 0%, transparent 50%),
+                hsl(var(--background));
+  }
+
+  .btn-primary-glow {
+    background: linear-gradient(135deg, hsl(var(--neon-blue) / 0.6), hsl(200 80% 75% / 0.4));
+    @apply text-foreground font-semibold;
+  }
+
+  .btn-primary-glow:hover {
+    background: linear-gradient(135deg, hsl(var(--neon-blue) / 0.8), hsl(200 80% 75% / 0.6));
+  }
+}
+
+/* Remove number input arrows */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
