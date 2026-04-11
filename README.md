@@ -60,30 +60,36 @@ Secure, private bridging from Ethereum, Polygon, Arbitrum, Optimism → Midnight
 
 ## 🏗️ Architecture
 
-```
-User (Browser)
-    │
-    ├─→ ShadowSend UI (React 18 + TypeScript)
-    │       ├─ SendPrivatelyTab   — multi-recipient shielded sends
-    │       ├─ SwapTab            — ZK intent-based atomic swaps  
-    │       └─ PrivacyDashboard  — live balance + tx feed
-    │
-    ├─→ MidnightWalletContext (React Context)
-    │       ├─ Wallet state management
-    │       ├─ Balance polling (10s interval)
-    │       └─ Pending tx tracking
-    │
-    ├─→ Midnight Lace Wallet (DApp Connector)
-    │       ├─ getShieldedAddresses()
-    │       ├─ makeTransfer([{kind, tokenType, value, recipient}])
-    │       ├─ makeIntent(inputs, outputs, options)
-    │       ├─ balanceSealedTransaction(tx)    ← NEW in Phase 2
-    │       └─ submitTransaction(tx)           ← ZK proof generated here
-    │
-    └─→ Midnight Network (Preprod)
-            ├─ Blockchain (shielded transactions on-chain)
-            ├─ Indexer API (https://indexer.preprod.midnight.network/api/v3/graphql)
-            └─ Explorer (https://explorer.preprod.midnight.network)
+```mermaid
+flowchart TD
+    subgraph Client ["Frontend (React + TypeScript)"]
+        UI[ShadowSend Dashboard]
+        API[Midnight Wallet Context]
+    end
+
+    subgraph Wallet ["Midnight Lace (Extension)"]
+        LWC[DApp Connector API]
+        PRV[Local Proving Service]
+    end
+
+    subgraph Infrastructure ["Midnight Infrastructure"]
+        NODE[Midnight Preprod Node]
+        INDX[Midnight Indexer v4]
+    end
+
+    UI <--> API
+    API <--> LWC
+    LWC <--> PRV
+    PRV <--> NODE
+    NODE <--> INDX
+    INDX -- Balance & History --> UI
+
+    %% Styling
+    style UI fill:#6366f1,color:#fff,stroke:#4f46e5,stroke-width:2px
+    style PRV fill:#10b981,color:#fff,stroke:#059669,stroke-width:2px
+    style NODE fill:#0f172a,color:#fff,stroke:#1e293b,stroke-width:2px
+    style LWC fill:#8b5cf6,color:#fff,stroke:#7c3aed,stroke-width:2px
+    style INDX fill:#f59e0b,color:#fff,stroke:#d97706,stroke-width:2px
 ```
 
 ### ZK Transaction Flow
