@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { interval, filter, take, firstValueFrom, timeout, map, concatMap, catchError, throwError, of } from "rxjs";
 
 type WalletState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -29,7 +30,6 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
   const [transactions, setTransactions] = useState<any[]>([]); 
   const [walletAPI, setWalletAPI] = useState<any>(null);
   
-  // CRITICAL: Updated to v4 as per official SDK specs
   const indexerUri = "https://indexer.preprod.midnight.network/api/v4/graphql";
   const indexerWsUri = "wss://indexer.preprod.midnight.network/api/v4/graphql/ws";
   const [proverServerUri, setProverServerUri] = useState("http://localhost:6300");
@@ -53,7 +53,6 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
       const shielded = await api.getShieldedBalances();
       const unshielded = await api.getUnshieldedBalances();
       
-      // Extract bigint values safely as per SDK v4 patterns
       const extractBalance = (balances: any, tokenId: string): bigint => {
         if (!balances) return 0n;
         const val = balances[tokenId] ?? balances['native'] ?? 0;
@@ -92,36 +91,66 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
   const connectWallet = async () => {
     try {
       setState("connecting");
-      const win = window as any;
-      
-      // Check for Midnight Lace v4+
-      const lace = win.midnight?.mnLace;
-      if (!lace) {
-        toast.error("Midnight Lace wallet not found. Please install it from midnight.network");
-        setState("disconnected");
-        return;
-      }
+      toast.info("Searching for Midnight identity...");
 
-      // Connect to preprod explicitly
-      const api = await lace.connect('preprod');
-      
-      // Get configuration (prover server, etc.)
-      const config = await api.getConfiguration?.() || {};
-      if (config.proverServerUrl) setProverServerUri(config.proverServerUrl);
+      // Implementing Robust Polling as per user snippet
+      const api = await firstValueFrom(
+        interval(200).pipe(
+          map(() => {
+            const midnight = (window as any).midnight;
+            if (!midnight) return undefined;
+            // Support both standard mnLace key and any other injected midnight wallets
+            return midnight.mnLace || Object.values(midnight)[0];
+          }),
+          filter((api): api is any => !!api),
+          take(1),
+          timeout({
+            first: 5000,
+            with: () => throwError(() => new Error("Midnight Lace wallet not found. Is the extension installed?"))
+          }),
+          concatMap(async (initialAPI) => {
+            return await initialAPI.connect("preprod");
+          }),
+          catchError((err) => throwError(() => err))
+        )
+      );
+
+      // --- Enhanced System Diagnostics ---
+      try {
+        const config = await api.getConfiguration?.() || {};
+        console.log("[SHADOW-WALLET] 🛡️ SYSTEM SYNCED. WALLET CONFIG:");
+        console.table({
+          Network: "Preprod",
+          Prover_URI: config.proverServerUri || "Not Reported",
+          Indexer_URI: config.indexerUri || "Not Reported",
+        });
+
+        if (config.proverServerUri) setProverServerUri(config.proverServerUri);
+        
+        if (config.proverServerUri && !config.proverServerUri.includes('localhost:6300')) {
+          console.warn("[SHADOW-WALLET] ⚠️ ALERT: Wallet Prover URI mismatch! Go to Lace Settings > Network and set to http://localhost:6300");
+          toast.warning("Check Prover Link in Lace Settings");
+        }
+      } catch (e) {
+        console.warn("[SHADOW-WALLET] Could not retrieve config table.");
+      }
+      // -----------------------------------
       
       // Fetch both shielded and unshielded identities
       const shieldedAddresses = await api.getShieldedAddresses();
-      // set address, fallback to index 0 if it's an array (depends on Lace version)
-      setShieldedAddress(shieldedAddresses.shieldedAddress || (Array.isArray(shieldedAddresses) ? shieldedAddresses[0] : shieldedAddresses));
+      const addr = shieldedAddresses?.shieldedAddress || (Array.isArray(shieldedAddresses) ? shieldedAddresses[0] : shieldedAddresses);
       
+      if (!addr) throw new Error("Could not retrieve shielded address");
+
+      setShieldedAddress(addr);
       setWalletAPI(api);
       await refreshAll(api);
       
       setState("connected");
-      toast.success("🔒 Wallet connected — identity shielded!");
+      toast.success("🔒 System Synced — Identity Shielded!");
     } catch (e: any) {
       setState("error");
-      toast.error(`Connection failed: ${e.message}`);
+      toast.error(e.message || "Connection failed. Please check Lace wallet.");
       console.error("Wallet connection error:", e);
     }
   };

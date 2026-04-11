@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Shield, Loader2, Info, Lock, EyeOff, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Shield, Loader2, Info, Lock, EyeOff, ShieldCheck, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMidnightWallet } from "@/contexts/MidnightWalletContext";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ interface Recipient {
 }
 
 const SendPrivatelyTab = () => {
-  const { isConnected, walletAPI, refreshAll, addPendingTx } = useMidnightWallet();
+  const { isConnected, walletAPI, balances, refreshAll, addPendingTx } = useMidnightWallet();
   const [recipients, setRecipients] = useState<Recipient[]>([
     { id: "1", address: "", amount: "" },
   ]);
@@ -34,17 +34,25 @@ const SendPrivatelyTab = () => {
 
   const handlePrivateSend = async () => {
     if (!isConnected || !walletAPI) {
+      console.error("[SHADOW-SEND] Status: Disconnected. Connect wallet before sending.");
       toast.error("Connect your Midnight Lace wallet first");
       return;
     }
 
-    // Validate all recipients
+    // Validate all recipients strictly for the Preprod network to prevent Bech32m mismatch
+    console.log("[SHADOW-SEND] Step 1: Validating addresses for Preprod network...");
     for (const r of recipients) {
       const addr = r.address.trim();
-      if (!addr.startsWith('mn_')) {
-        toast.error(`Invalid address format: must start with mn_`);
+
+      // Check for correct network prefix (preprod)
+      const isValidFormat = addr.startsWith('mn_addr_preprod') || addr.startsWith('mn_shield-addr_preprod');
+
+      if (!isValidFormat) {
+        console.warn("[SHADOW-SEND] Validation Fail: Network Prefix Mismatch:", addr);
+        toast.error(`Invalid Network: Address must start with mn_addr_preprod or mn_shield-addr_preprod`);
         return;
       }
+
       if (!r.amount || parseFloat(r.amount) <= 0) {
         toast.error("Enter a valid amount greater than 0");
         return;
@@ -52,51 +60,82 @@ const SendPrivatelyTab = () => {
     }
 
     try {
+      const shieldedBalance = parseFloat(balances['tNIGHT_SHIELDED'] || '0');
+      if (isShieldingActive && shieldedBalance <= 0) {
+        toast.error("You have 0.00 Shielded funds. Turn OFF 'ZK-Shielding' to shield public funds first.");
+        return;
+      }
+
       setStatus("generating");
       toast.info("🔒 Constructing Shielded ZK-Proof...");
 
-      // SDK Constant: nativeToken().raw is all zeros
       const NATIVE_ASSET_ID = "0000000000000000000000000000000000000000000000000000000000000000";
 
-      const transferItems = recipients.map(r => {
+      const transferOutputs = recipients.map(r => {
         const addr = r.address.trim();
-        // Force 'shielded' for maximum privacy as per SDK snippet
         const isShielded = addr.startsWith('mn_shield-addr');
         const microAmount = BigInt(Math.floor(parseFloat(r.amount) * 1_000_000));
-        
         return {
           kind: isShielded ? 'shielded' : 'unshielded',
+          type: NATIVE_ASSET_ID,
           tokenType: NATIVE_ASSET_ID,
-          value: microAmount, 
+          value: microAmount,
           recipient: addr,
         };
       });
 
-      console.log("Submitting transfer request:", transferItems);
+      console.log("[SHADOW-SEND] Step 3: DESPATCHING TO LACE...", JSON.stringify(transferOutputs, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+      toast.info("🔒 Requesting Wallet Confirmation...");
       
-      const tx = await walletAPI.makeTransfer(transferItems);
+      const transferPromise = walletAPI.makeTransfer(transferOutputs);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Lace Extension didn't respond in 60s. CHECK: 1. Public Balance > 10 tNIGHT. 2. Remote/Local Prover set correctly.")), 60000)
+      );
+
+      const tx = await Promise.race([transferPromise, timeoutPromise]) as any;
+      
+      if (!tx) {
+        throw new Error("Wallet failed to return transaction.");
+      }
       
       setStatus("submitting");
-      toast.info("💎 ZK proof generated — submitting to Midnight...");
+      console.log("[SHADOW-SEND] Step 4: SUBMITTING TRANSACTION...");
+      toast.info("🚀 Sending to Midnight network...");
       
       const result = await walletAPI.submitTransaction(tx);
       const txHash = typeof result === 'string' ? result : (result?.txHash || result?.id || "");
-      
+
       if (txHash) {
         addPendingTx(txHash, isShieldingActive ? 'shielded' : 'unshielded');
-        toast.success(`✅ Sent privately! TX: ${txHash.slice(0, 12)}...`);
+        toast.success(`✅ Sent! Hash: ${txHash.slice(0, 12)}...`);
       }
 
       await refreshAll();
       setStatus("confirmed");
       setRecipients([{ id: "1", address: "", amount: "" }]);
       setTimeout(() => setStatus("idle"), 5000);
-      
+
     } catch (e: any) {
-      console.error("Transfer error:", e);
-      toast.error(`Transfer failed: ${e.message || "Check wallet and try again"}`);
-      setStatus("error");
-      setTimeout(() => setStatus("idle"), 3000);
+      console.error("[SHADOW-SEND] ❌ TRANSACTION ERROR ❌");
+      const errorMsg = e.message || "Unknown error";
+      const failureTag = e.cause?.failure?._tag || e.cause?._tag || "Internal";
+      const errorDetail = e.cause?.failure?.message || e.cause?.message || errorMsg;
+      
+      console.error("[SHADOW-SEND] Tag:", failureTag);
+      console.error("[SHADOW-SEND] Detail:", errorDetail);
+      console.log("[SHADOW-SEND] RAW ERROR:", e);
+      
+      if (errorDetail.includes('Unexpected transaction state')) {
+        toast.error(`Ledger Error: UTXOs might be locked. Check Lace 'Activity' tab for pending TXs.`);
+        console.warn("[SHADOW-SEND] 💡 TIP: If you have a pending/failed transaction, Lace locks your coins. Wait 2-3 mins.");
+      } else if (failureTag.includes('Insufficient')) {
+        toast.error(`Wallet Error: Insufficient funds or DUST`);
+      } else if (errorMsg.includes('message channel closed')) {
+        toast.error(`Extension Error: Use Incognito & Disable other extensions`);
+      } else {
+        toast.error(`Transfer failed: ${errorDetail}`);
+      }
+      setStatus("idle");
     }
   };
 
@@ -108,11 +147,11 @@ const SendPrivatelyTab = () => {
         </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold text-emerald-500 uppercase">ZK-Shielding</span>
-          <button 
+          <button
             onClick={() => setIsShieldingActive(!isShieldingActive)}
             className={`w-8 h-4 rounded-full relative transition-colors ${isShieldingActive ? 'bg-emerald-500' : 'bg-slate-700'}`}
           >
-            <motion.div 
+            <motion.div
               animate={{ x: isShieldingActive ? 18 : 2 }}
               className="absolute top-1 left-0 w-2 h-2 bg-white rounded-full shadow-sm"
             />
@@ -138,12 +177,25 @@ const SendPrivatelyTab = () => {
                   </button>
                 )}
               </div>
-              <input
-                placeholder="mn_shield-addr..."
-                value={recipient.address}
-                onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
-                className="w-full glass-input px-3 py-2 text-xs bg-transparent text-foreground outline-none font-mono"
-              />
+              <div className="relative">
+                <input
+                  placeholder="mn_shield-addr_preprod..."
+                  value={recipient.address}
+                  onChange={(e) => updateRecipient(recipient.id, "address", e.target.value)}
+                  className={`w-full glass-input px-3 py-2 text-xs bg-transparent text-foreground outline-none font-mono ${recipient.address && (recipient.address.startsWith('mn_addr_preprod') || recipient.address.startsWith('mn_shield-addr_preprod'))
+                      ? 'border-emerald-500/50' : recipient.address ? 'border-amber-500/50' : ''
+                    }`}
+                />
+                {recipient.address && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {recipient.address.startsWith('mn_addr_preprod') || recipient.address.startsWith('mn_shield-addr_preprod') ? (
+                      <ShieldCheck size={12} className="text-emerald-500" />
+                    ) : (
+                      <AlertCircle size={12} className="text-amber-500" />
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <input
@@ -170,7 +222,7 @@ const SendPrivatelyTab = () => {
 
       {/* CRITICAL: Privacy Preview Banner */}
       {recipients.some(r => r.address && r.amount) && isShieldingActive && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-center gap-4 px-3 py-2.5 rounded-xl text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 uppercase font-black tracking-widest"
@@ -187,12 +239,11 @@ const SendPrivatelyTab = () => {
           whileTap={{ scale: 0.99 }}
           onClick={handlePrivateSend}
           disabled={status === "generating" || status === "submitting"}
-          className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all ${
-            status === "idle" ? "btn-primary-glow shadow-[0_0_30px_rgba(37,99,235,0.2)]" : 
-            status === "confirmed" ? "bg-emerald-600 text-white shadow-lg" :
-            status === "error" ? "bg-red-600 text-white" :
-            "bg-secondary text-muted-foreground cursor-not-allowed border border-white/5"
-          }`}
+          className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all ${status === "idle" ? "btn-primary-glow shadow-[0_0_30px_rgba(37,99,235,0.2)]" :
+              status === "confirmed" ? "bg-emerald-600 text-white shadow-lg" :
+                status === "error" ? "bg-red-600 text-white" :
+                  "bg-secondary text-muted-foreground cursor-not-allowed border border-white/5"
+            }`}
         >
           {status === "idle" && <><Shield className="w-4 h-4" /> Finalize Shielded Send</>}
           {status === "generating" && <><Loader2 className="w-4 h-4 animate-spin" /> Generating ZK Proof...</>}

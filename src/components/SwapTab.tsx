@@ -14,6 +14,7 @@ const SwapTab = () => {
 
   const handleSwap = async () => {
     if (!isConnected || !walletAPI) {
+      console.error("[SHADOW-SWAP] Disconnect detected. Please connect your Lace wallet.");
       toast.error("Connect your Midnight Lace wallet first");
       return;
     }
@@ -25,34 +26,55 @@ const SwapTab = () => {
 
     // CRITICAL FIX: Guard for Lace Version 4+
     if (!walletAPI.makeIntent && !walletAPI.initSwap) {
+      console.warn("[SHADOW-SWAP] Legacy Wallet Detected: API v4+ Required.");
       toast.error("Private Swaps require Midnight Lace v4+. Please update your wallet extension.");
       return;
     }
 
     try {
       setStatus("exchanging");
+      console.log("[SHADOW-SWAP] Step 1: Formulating Atomic Intent payload...");
       toast.info(`🔐 Initiating Private Atomic Swap...`);
 
       const microAmount = BigInt(Math.floor(parseFloat(amount) * 1_000_000));
       const NATIVE_ASSET_ID = "0000000000000000000000000000000000000000000000000000000000000000";
 
       // 1. Create ZK Intent (Following Zswap Alice-Bob Atomic Pattern)
-      const unbalancedTx = await walletAPI.makeIntent(
-        [{ kind: 'shielded', type: NATIVE_ASSET_ID, value: microAmount }], // What Alice offers
-        [{ kind: 'shielded', type: NATIVE_ASSET_ID, value: microAmount, recipient: shieldedAddress }], // What Alice requests
+      console.log("[SHADOW-SWAP] Step 2: REQUESTING INTENT (Calling Prover 6300). Wait for ZK construction...");
+      
+      const swapOutputs = [
+        {
+          kind: 'shielded',
+          type: NATIVE_ASSET_ID,
+          tokenType: NATIVE_ASSET_ID,
+          value: microAmount,
+          recipient: ownAddress!,
+        },
+      ] as any[];
+
+      const intentPromise = walletAPI.makeIntent(
+        [{ kind: 'shielded', type: NATIVE_ASSET_ID, tokenType: NATIVE_ASSET_ID, value: microAmount }], 
+        swapOutputs, 
         { intentId: "random", payFees: true }
       );
+      const intentTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Intent generation taking too long. Ensure Prover is reachable.")), 600000)
+      );
 
-      toast.info("⚖️ Balancing ZK-Transaction...");
+      const unbalancedTx = await Promise.race([intentPromise, intentTimeout]) as any;
+      console.log("[SHADOW-SWAP] Step 3: INTENT CREATED. Finalizing ZK-Proof...");
+
+      // 2. Finalize (Balance & Proof)
+      const sealedTx = await walletAPI.balanceSealedTransaction(unbalancedTx);
+      console.log("[SHADOW-SWAP] Step 4: PROOF GENERATED. Submitting...");
       
-      // 2. Balance Sealed Transaction (Required for Atomic Settlement)
-      const balancedTx = await walletAPI.balanceSealedTransaction(unbalancedTx);
-
-      // 3. Submit
-      const result = await walletAPI.submitTransaction(balancedTx);
+      const result = await walletAPI.submitTransaction(sealedTx);
 
       const txHash = typeof result === 'string' ? result : (result?.txHash || result?.id || "");
-      if (txHash) addPendingTx(txHash, 'shielded');
+      if (txHash) {
+        console.log("[SHADOW-SWAP] ✅ SWAP SUBMITTED SUCCESSFULLY. Hash:", txHash);
+        addPendingTx(txHash, 'shielded');
+      }
 
       await refreshAll();
       toast.success("🔥 Private Swap Settled & Submitted!");
@@ -60,8 +82,19 @@ const SwapTab = () => {
       setAmount("");
       setTimeout(() => setStatus("idle"), 5000);
     } catch (e: any) {
-      console.error("Swap failed", e);
-      toast.error(`Swap Failed: ${e.message}`);
+      console.error("[SHADOW-SWAP] ❌ SWAP FAILURE ❌");
+      const errorDetail = e.cause?.message || e.message || "Unknown error";
+      console.error("[SHADOW-SWAP] Detail:", errorDetail);
+      console.log("[SHADOW-SWAP] Full Error Object:", e);
+      
+      if (e._id === 'FiberFailure') {
+        toast.error(`Swap Error: ${errorDetail || "Ensure you have shielded funds and no pending txs"}`);
+      } else if (e.message?.includes('prover') || e.message?.includes('6300')) {
+        toast.error("Prover Error: Ensure Docker is active on 6300");
+      } else {
+        toast.error(`Swap Failed: ${errorDetail}`);
+      }
+      
       setStatus("error");
       setTimeout(() => setStatus("idle"), 3000);
     }
