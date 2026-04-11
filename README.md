@@ -1,246 +1,73 @@
-# 🌑 ShadowSend: Privacy-First DeFi on Midnight
+# 🌌 ShadowSend: Elite Private DeFi for Midnight
 
-[![Midnight Network](https://img.shields.io/badge/Network-Midnight%20Preprod-blueviolet?style=for-the-badge)](https://midnight.network)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![ZK Powered](https://img.shields.io/badge/ZK-SNARK%20Powered-emerald?style=for-the-badge)](https://midnight.network)
-[![Hackathon](https://img.shields.io/badge/Midnight-Hackathon%202026-blueviolet?style=for-the-badge)](https://midnight.network)
+[![Network](https://img.shields.io/badge/Network-Midnight_Preprod-purple?style=for-the-badge&logo=shadow)](https://midnight.network)
+[![SDK](https://img.shields.io/badge/SDK-V4_Vetted-blue?style=for-the-badge)](https://docs.midnight.network)
+[![License](https://img.shields.io/badge/License-Apache_2.0-emerald?style=for-the-badge)](LICENSE)
 
-> **Making privacy the default standard in DeFi — not an optional feature.**
+**ShadowSend** is a state-of-the-art DApp built on the Midnight Network, providing institutional-grade privacy for digital asset transfers and atomic swaps. By leveraging Zero-Knowledge Proofs (ZKP), ShadowSend ensures that your financial identity remains shielded while maintaining 100% cryptographic integrity.
 
-**ShadowSend** is a next-generation privacy dApp built on the **Midnight Network**. It leverages Zero-Knowledge (ZK) proofs to enable anonymous asset transfers and atomic swaps, ensuring that your financial data remains your own business — forever.
-
----
-
-## 🎥 Demo & Submission
-
-| Resource | Link |
-| :--- | :--- |
-| 🎬 **Demo Video** | *[ShadowSend Video](https://docs.google.com/presentation/d/1h4nY2MAzta08UREP494CqoZyVh64QY7e/edit?usp=sharing&ouid=110120696689077664393&rtpof=true&sd=true)* |
-| 📊 **Presentation (PPT)** | *[ShadowSend](https://docs.google.com/presentation/d/1h4nY2MAzta08UREP494CqoZyVh64QY7e/edit?usp=sharing&ouid=110120696689077664393&rtpof=true&sd=true)* |
-| 🐙 **GitHub** | [NikhilRaikwar/ShadowSend](https://github.com/NikhilRaikwar/ShadowSend) |
-| 🌐 **Live Demo** | *https://shadowsend.vercel.app/* |
-
----
-
-## 🚀 Key Features
-
-### 🔒 Shielded Transfers
-Send tokens privately where **both the recipient address AND the amount are cryptographically hidden** via ZK-SNARKs. Supports:
-- Shielded → Shielded (`mn_shield-addr_preprod` → `mn_shield-addr_preprod`)
-- Unshielded → Shielded (shield your assets)
-- Multi-recipient batching in a single transaction
-
-### ⚛️ Atomic Private Swaps
-Exchange assets privately without intermediaries using **ZK intent-based atomic swaps**:
-- Zero front-running risk — trade details inside a Snark
-- Anti-MEV by design
-- `makeIntent()` broadcasts encrypted swap intents
-- Atomic settlement ensures either full completion or rollback
-
-### 📊 Privacy Dashboard
-Real-time breakdown of your balances and activity:
-- **Private Pool** (shielded tNIGHT) vs **Public Pool** (unshielded tNIGHT)
-- Live transaction history synced from the Midnight Indexer
-- Pending tx detection with on-chain confirmation tracking
-- Auto-refresh every 10 seconds
-
-### 🛡️ Dual Privacy Modes
-Toggle per-transaction between:
-- **Shielding Active** — amounts and recipients cryptographically hidden
-- **Public Mode** — standard unshielded transaction
-
-### 🌉 Cross-Chain Bridge *(Coming Soon)*
-Secure, private bridging from Ethereum, Polygon, Arbitrum, Optimism → Midnight Network.
-
----
-
-## 🏗️ Architecture
-
-```
-User (Browser)
-    │
-    ├─→ ShadowSend UI (React + TypeScript)
-    │       ├─ SendPrivatelyTab — multi-recipient shielded sends
-    │       ├─ SwapTab — ZK intent-based atomic swaps
-    │       └─ PrivacyDashboard — live balance + tx feed
-    │
-    ├─→ Midnight Lace Wallet (DApp Connector)
-    │       ├─ getShieldedAddresses()
-    │       ├─ makeTransfer([{kind, type, value, recipient}])
-    │       ├─ makeIntent(inputs, outputs)
-    │       └─ submitTransaction(tx)  ← ZK proof generated here
-    │
-    └─→ Midnight Network (Preprod)
-            ├─ Blockchain (shielded transactions)
-            ├─ Indexer API (https://indexer.preprod.midnight.network)
-            └─ Explorer (https://explorer.preprod.midnight.network)
+```mermaid
+graph TD
+    A[User Wallet: Lace] -->|ZK Intent| B[ShadowSend DApp]
+    B -->|Sealed Tx| C[Midnight Proof Server]
+    C -->|ZK Proof| D[Midnight Ledger]
+    D -->|Private Settlement| E[Shielded Recipient]
+    style B fill:#5b21b6,stroke:#a78bfa,stroke-width:2px
+    style C fill:#1e293b,stroke:#3b82f6,stroke-width:2px
 ```
 
-### ZK Transaction Flow
+## 🛠️ Core Features
 
-```
-1. User fills form  →  2. Wallet builds SNARK  →  3. Tx submitted  →  4. Confirmed on-chain
-   (address + amount)     (all data encrypted)      (opaque ZK proof)   (balance updated)
-```
+| Feature | Description | Security Model |
+| :--- | :--- | :--- |
+| **Shielded Send** | Hide transaction amount and recipient identity. | Zero-Knowledge (ZKP) |
+| **Atomic Swap** | Trustless exchange of tNIGHT tokens without counterparty risk. | Smart Contract Guided |
+| **DUST Energy** | Auto-generating fuel system for paying ZK fees. | Identity-linked |
+| **ZK Compliance** | Prove you are not blacklisted without revealing your balance. | Selective Disclosure |
 
----
+## 🚀 Technical Stack
 
-## 🛠️ Technology Stack
+- **Smart Contract**: Compact (v0.15)
+- **Frontend**: React 18 + Vite (Production Optimized)
+- **Styling**: TailwindCSS + Framer Motion (Glassmorphism)
+- **SDK**: Midnight DApp Connector API (V4 Alignment)
+- **Proving**: Local Proof Server (Docker-ready)
 
-| Component | Technology |
-| :--- | :--- |
-| **Blockchain** | Midnight Network (Preprod Testnet) |
-| **Wallet Connector** | Midnight Lace (Official DApp Connector) |
-| **Zero-Knowledge** | Compact / ZK-SNARKs |
-| **Frontend Framework** | React 18 + TypeScript |
-| **Styling** | Tailwind CSS + Custom Glass UI |
-| **Animations** | Framer Motion |
-| **State Management** | React Context API |
-| **Data Fetching** | TanStack Query |
-| **Notifications** | Sonner |
-| **Icons** | Lucide React |
-| **Build Tool** | Vite |
+## ⚡ Getting Started (Onboarding)
 
----
+### 1. Requirements
+- **Midnight Lace Wallet**: [Download here](https://midnight.network)
+- **Docker**: For running the proving server.
+- **Node.js**: v18.x or higher.
 
-## 📦 Installation & Setup
-
-### Prerequisites
-- Node.js 18+
-- Yarn
-- **[Midnight Lace Wallet](https://midnight.network)** browser extension
-- Midnight Preprod testnet configured in wallet
-
-### 1. Clone the Repository
+### 2. Setup
 ```bash
-git clone https://github.com/NikhilRaikwar/ShadowSend.git
-cd ShadowSend/frontend
+# Clone the repository
+git clone https://github.com/NikhilRaikwar/ShadowSend
+cd ShadowSend
+
+# Install dependencies
+npm install
+
+# Start the Midnight Proof Server (Required for ZK)
+docker run -d -p 6300:6300 ghcr.io/midnight-ntwrk/proof-server:8.0.3
+
+# Run in Development mode
+npm run dev
 ```
 
-### 2. Install Dependencies
-```bash
-yarn install
-```
+### 3. Faucet & DUST
+1. Obtain `tNIGHT` from the [Midnight Faucet](https://faucet.preprod.midnight.network).
+2. Use the **ShadowSend Dashboard** to "Initialize DUST Energy".
+3. Wait 1-2 blocks for your tNIGHT to start generating tDUST energy.
 
-### 3. Environment Setup
+## 🗺️ Roadmap (V1.0)
 
-Ensure your local environment is configured:
-- ✅ Midnight Lace Wallet extension installed
-- ✅ Wallet switched to **Midnight Preprod** network
-- ✅ Midnight Indexer accessible (`https://indexer.preprod.midnight.network/api/v3/graphql`)
-- ✅ Prover server running at `http://localhost:6300` (optional, for local proving)
-
-### 4. Launch Application
-```bash
-yarn dev --port 3001
-```
-
-Open `http://localhost:3001` in your browser.
+- [x] **Phase 1**: Core Shielded Transfer Integration (SDK V4).
+- [x] **Phase 2**: Atomic Swap Protocols via `makeIntent`.
+- [x] **Phase 3**: Real-time Identity Persistence & Balance Tracking.
+- [ ] **Phase 4**: Multi-Asset Privacy Pools (Custom tokens).
 
 ---
 
-## 🔐 How to Use
-
-### Send Privately
-
-1. **Connect Wallet** — Click "Connect Wallet" → Midnight Lace opens → Approve on Preprod
-2. **Enter recipient** — Use a valid Midnight Preprod address:
-   - Shielded: `mn_shield-addr_preprod1...`
-   - Unshielded: `mn_addr_preprod1...`
-3. **Enter amount** — In tNIGHT (supports decimals)
-4. **Enable Shielding** — Toggle ON for private transfer (default: ON)
-5. **Click "Send Shielded"** — Wallet generates ZK proof, tx submitted
-6. **Confirm in wallet** — Approve the shielded transaction
-
-### Swap Privately
-
-1. Connect wallet
-2. Enter swap amount in "You Send"
-3. Click **"Swap Privately"**
-4. Wallet broadcasts a ZK intent — atomic swap executes privately
-
-### Multi-Recipient Batch Send
-
-1. Click **+** to add recipients
-2. Enter unique address + amount per recipient
-3. Single shielded transaction covers all recipients
-
----
-
-## 🛡️ Security Design
-
-| Property | Detail |
-| :--- | :--- |
-| **Non-Custodial** | Private keys never leave Midnight Lace wallet |
-| **ZK Proof Generation** | Happens client-side inside the wallet |
-| **No Data Storage** | ShadowSend stores zero user data |
-| **Address Validation** | Strict prefix validation (`mn_addr_preprod` / `mn_shield-addr_preprod`) |
-| **Amount Precision** | Converted to microunits (×1,000,000) to avoid precision loss |
-| **Open Source** | Fully auditable codebase |
-
----
-
-## 🧪 Smart Contract / Native Asset
-
-ShadowSend uses the **native tNIGHT asset** on Midnight Preprod:
-
-```
-Native Asset ID: 0000000000000000000000000000000000000000000000000000000000000000
-```
-
-No custom contract deployment required for end-users. The Midnight Lace DApp Connector handles all ZK proof generation and transaction construction natively.
-
----
-
-## 📁 Project Structure
-
-```
-frontend/
-├── src/
-│   ├── components/
-│   │   ├── SendPrivatelyTab.tsx    # Multi-recipient shielded send
-│   │   ├── SwapTab.tsx             # Atomic private swap
-│   │   ├── PrivacyDashboard.tsx    # Balance + transaction feed
-│   │   ├── WalletConnectButton.tsx # Lace wallet integration
-│   │   ├── TokenSelector.tsx       # tNIGHT / tDUST picker
-│   │   ├── Navbar.tsx
-│   │   └── Footer.tsx
-│   ├── contexts/
-│   │   └── MidnightWalletContext.tsx  # Wallet state + API
-│   ├── pages/
-│   │   ├── Index.tsx               # Main dApp page
-│   │   └── NotFound.tsx
-│   └── index.css                   # Glass UI design system
-└── public/
-    └── shadowsend.png              # Ghost logo
-```
-
----
-
-## 🤝 Hackathon Submission
-
-Built with ❤️ for the **Midnight Network Hackathon 2026**.
-
-**Team:** ShadowSend Team  
-**Builder:** [@NikhilRaikwarr](https://x.com/NikhilRaikwarr)
-
-### What we built:
-- ✅ Privacy-first token transfers with ZK-SNARK shielding
-- ✅ Atomic private swaps via ZK intents
-- ✅ Real-time privacy dashboard with live blockchain sync
-- ✅ Full Midnight Lace DApp Connector integration
-- ✅ Multi-recipient batch shielded sends
-- ✅ Beautiful, production-grade UI with dark glass aesthetic
-
-### Why it matters:
-DeFi today is entirely transparent — anyone can see your wallet balance, transactions, and trading patterns. ShadowSend proves that **financial privacy is achievable on a public blockchain** using zero-knowledge cryptography. Midnight Network makes this possible. We made it accessible.
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-*© 2026 ShadowSend Team. Protected by Midnight ZK.*
+Built with 🖤 for the **Midnight Network Hackathon 2026**.

@@ -1,0 +1,342 @@
+{
+  "compiler-version": "0.30.0",
+  "language-version": "0.22.0",
+  "runtime-version": "0.15.0",
+  "circuits": [
+    {
+      "name": "register_compliance",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "perform_shielded_send",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "shieldedInput",
+          "type": {
+            "type-name": "Struct",
+            "name": "QualifiedShieldedCoinInfo",
+            "elements": [
+              {
+                "name": "nonce",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "color",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "value",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 340282366920938463463374607431768211455
+                }
+              },
+              {
+                "name": "mt_index",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 18446744073709551615
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "type": {
+            "type-name": "Struct",
+            "name": "ZswapCoinPublicKey",
+            "elements": [
+              {
+                "name": "bytes",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 340282366920938463463374607431768211455
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Struct",
+        "name": "ShieldedSendResult",
+        "elements": [
+          {
+            "name": "change",
+            "type": {
+              "type-name": "Struct",
+              "name": "Maybe",
+              "elements": [
+                {
+                  "name": "is_some",
+                  "type": {
+                    "type-name": "Boolean"
+                  }
+                },
+                {
+                  "name": "value",
+                  "type": {
+                    "type-name": "Struct",
+                    "name": "ShieldedCoinInfo",
+                    "elements": [
+                      {
+                        "name": "nonce",
+                        "type": {
+                          "type-name": "Bytes",
+                          "length": 32
+                        }
+                      },
+                      {
+                        "name": "color",
+                        "type": {
+                          "type-name": "Bytes",
+                          "length": 32
+                        }
+                      },
+                      {
+                        "name": "value",
+                        "type": {
+                          "type-name": "Uint",
+                          "maxval": 340282366920938463463374607431768211455
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "sent",
+            "type": {
+              "type-name": "Struct",
+              "name": "ShieldedCoinInfo",
+              "elements": [
+                {
+                  "name": "nonce",
+                  "type": {
+                    "type-name": "Bytes",
+                    "length": 32
+                  }
+                },
+                {
+                  "name": "color",
+                  "type": {
+                    "type-name": "Bytes",
+                    "length": 32
+                  }
+                },
+                {
+                  "name": "value",
+                  "type": {
+                    "type-name": "Uint",
+                    "maxval": 340282366920938463463374607431768211455
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "deposit_shielded",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "coin",
+          "type": {
+            "type-name": "Struct",
+            "name": "ShieldedCoinInfo",
+            "elements": [
+              {
+                "name": "nonce",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "color",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              },
+              {
+                "name": "value",
+                "type": {
+                  "type-name": "Uint",
+                  "maxval": 340282366920938463463374607431768211455
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "create_swap_offer",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "offerer",
+          "type": {
+            "type-name": "Struct",
+            "name": "ZswapCoinPublicKey",
+            "elements": [
+              {
+                "name": "bytes",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "assetIn",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "amountIn",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 340282366920938463463374607431768211455
+          }
+        },
+        {
+          "name": "assetOut",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "amountOut",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 340282366920938463463374607431768211455
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "cancel_swap_offer",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "offerId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "settle_swap",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "offerId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "getPrivateIdentifier",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "getTransferAmount",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 340282366920938463463374607431768211455
+      }
+    },
+    {
+      "name": "getIsBlacklisted",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Boolean"
+      }
+    },
+    {
+      "name": "getOfferId",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    }
+  ],
+  "contracts": [
+  ]
+}

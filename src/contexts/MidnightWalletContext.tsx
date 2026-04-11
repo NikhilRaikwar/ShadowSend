@@ -10,12 +10,14 @@ interface WalletContextType {
   balances: Record<string, string>;
   transactions: any[];
   indexerUri: string;
+  indexerWsUri: string;
   proverServerUri: string;
   walletAPI: any;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   refreshAll: () => Promise<void>;
   addPendingTx: (hash: string, type: string) => void;
+  setProverServerUri: (uri: string) => void;
 }
 
 const MidnightWalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -26,15 +28,16 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
   const [balances, setBalances] = useState<Record<string, string>>({});
   const [transactions, setTransactions] = useState<any[]>([]); 
   const [walletAPI, setWalletAPI] = useState<any>(null);
+  
+  // CRITICAL: Updated to v4 as per official SDK specs
+  const indexerUri = "https://indexer.preprod.midnight.network/api/v4/graphql";
+  const indexerWsUri = "wss://indexer.preprod.midnight.network/api/v4/graphql/ws";
+  const [proverServerUri, setProverServerUri] = useState("http://localhost:6300");
 
-  const indexerUri = "https://indexer.preprod.midnight.network/api/v3/graphql";
-  const proverServerUri = "http://localhost:6300";
-
-  // Function to manually add a transaction hash to the list (for immediate feedback)
   const addPendingTx = useCallback((hash: string, type: string) => {
     setTransactions(prev => [{
       txHash: hash,
-      blockHeight: null, // Pending status
+      blockHeight: null,
       metadata: { type }
     }, ...prev]);
   }, []);
@@ -42,48 +45,47 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
   const refreshAll = useCallback(async (apiOverride?: any) => {
     const api = apiOverride || walletAPI;
     if (!api) return;
+    
     try {
+      const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
+      const DUST_ID = "0000000000000000000000000000000000000000000000000000000000000001";
+      
       const shielded = await api.getShieldedBalances();
       const unshielded = await api.getUnshieldedBalances();
       
-      const getVal = (bal: any, id?: string) => {
-        const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
-        const DUST_ID = "0000000000000000000000000000000000000000000000000000000000000002"; // Common DUST ID
-        
-        const targetId = id || NATIVE_ID;
-        const val = bal[targetId] || bal['native'] || (id ? 0 : Object.values(bal)[0]);
-        if (!val) return 0n;
-        return typeof val === 'object' ? BigInt(val.amount || 0) : BigInt(val);
+      // Extract bigint values safely as per SDK v4 patterns
+      const extractBalance = (balances: any, tokenId: string): bigint => {
+        if (!balances) return 0n;
+        const val = balances[tokenId] ?? balances['native'] ?? 0;
+        if (typeof val === 'bigint') return val;
+        if (typeof val === 'object' && val !== null) return BigInt(val.amount ?? 0);
+        return BigInt(val || 0);
       };
 
-      const sVal = getVal(shielded);
-      const uVal = getVal(unshielded);
-      const sDust = getVal(shielded, "0000000000000000000000000000000000000000000000000000000000000002");
+      const shieldedNight = extractBalance(shielded, NATIVE_ID);
+      const unshieldedNight = extractBalance(unshielded, NATIVE_ID);
+      const dustBalance = extractBalance(shielded, DUST_ID);
 
       setBalances({
-        tNIGHT: (Number(sVal + uVal) / 1_000_000).toFixed(2),
-        tNIGHT_SHIELDED: (Number(sVal) / 1_000_000).toFixed(2),
-        tNIGHT_UNSHIELDED: (Number(uVal) / 1_000_000).toFixed(2),
-        tDUST: (Number(sDust) / 1_000_000).toFixed(2),
+        tNIGHT: (Number(shieldedNight + unshieldedNight) / 1_000_000).toFixed(4),
+        tNIGHT_SHIELDED: (Number(shieldedNight) / 1_000_000).toFixed(4),
+        tNIGHT_UNSHIELDED: (Number(unshieldedNight) / 1_000_000).toFixed(4),
+        tDUST: (Number(dustBalance) / 1_000_000).toFixed(4),
       });
 
-      // Try fetching real history if possible, else we keep our local session txs
       try {
         const history = await api.getTransactions();
         if (history && history.length > 0) {
           setTransactions(prev => {
-            // Merge local pending with real history, avoiding duplicates
             const realTxs = history.map((h: any) => ({ ...h, metadata: h.metadata || { type: 'shielded' } }));
             const pendingOnly = prev.filter(p => !realTxs.find((r: any) => r.txHash === p.txHash));
             return [...pendingOnly, ...realTxs].slice(0, 10);
           });
         }
-      } catch (e) {
-        // Silent: Some Lace versions don't expose history yet
-      }
+      } catch (e) {}
 
     } catch (e) {
-      console.warn("Auto-refresh fail:", e);
+      console.warn("Balance refresh failed:", e);
     }
   }, [walletAPI]);
 
@@ -91,30 +93,36 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       setState("connecting");
       const win = window as any;
-      const provider = [
-        win.midnight?.mnLace,
-        win.cardano?.midnight,
-        ...(win.midnight ? Object.values(win.midnight) : [])
-      ].find(p => typeof p?.connect === 'function');
-
-      if (!provider) {
-        toast.error("Midnight Lace not found!");
+      
+      // Check for Midnight Lace v4+
+      const lace = win.midnight?.mnLace;
+      if (!lace) {
+        toast.error("Midnight Lace wallet not found. Please install it from midnight.network");
         setState("disconnected");
         return;
       }
 
-      const connectedApi = await provider.connect('preprod');
-      const addresses = await connectedApi.getShieldedAddresses();
+      // Connect to preprod explicitly
+      const api = await lace.connect('preprod');
       
-      setShieldedAddress(addresses.shieldedAddress);
-      setWalletAPI(connectedApi);
-      await refreshAll(connectedApi);
+      // Get configuration (prover server, etc.)
+      const config = await api.getConfiguration?.() || {};
+      if (config.proverServerUrl) setProverServerUri(config.proverServerUrl);
+      
+      // Fetch both shielded and unshielded identities
+      const shieldedAddresses = await api.getShieldedAddresses();
+      // set address, fallback to index 0 if it's an array (depends on Lace version)
+      setShieldedAddress(shieldedAddresses.shieldedAddress || (Array.isArray(shieldedAddresses) ? shieldedAddresses[0] : shieldedAddresses));
+      
+      setWalletAPI(api);
+      await refreshAll(api);
       
       setState("connected");
-      toast.success("Identity Shielded!");
+      toast.success("🔒 Wallet connected — identity shielded!");
     } catch (e: any) {
       setState("error");
-      toast.error(`Offline: ${e.message}`);
+      toast.error(`Connection failed: ${e.message}`);
+      console.error("Wallet connection error:", e);
     }
   };
 
@@ -129,7 +137,7 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
 
   useEffect(() => {
     if (state === "connected" && walletAPI) {
-      const interval = setInterval(() => refreshAll(), 10000); 
+      const interval = setInterval(() => refreshAll(), 15000); 
       return () => clearInterval(interval);
     }
   }, [state, walletAPI, refreshAll]);
@@ -143,12 +151,14 @@ export const MidnightWalletProvider: React.FC<{ children: React.ReactNode }> = (
         balances,
         transactions,
         indexerUri,
+        indexerWsUri,
         proverServerUri,
         walletAPI,
         connectWallet,
         disconnectWallet,
         refreshAll,
-        addPendingTx
+        addPendingTx,
+        setProverServerUri
       }}
     >
       {children}
