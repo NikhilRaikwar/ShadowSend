@@ -58,38 +58,58 @@ Secure, private bridging from Ethereum, Polygon, Arbitrum, Optimism → Midnight
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture & Functional Flow
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Frontend (React + TypeScript)"]
-        UI[ShadowSend Dashboard]
-        API[Midnight Wallet Context]
+    subgraph UI ["ShadowSend Dashboard (React)"]
+        DASH[Privacy Dashboard]
+        SEND[Send Privately Tab]
+        SWAP[Atomic Swap Tab]
     end
 
-    subgraph Wallet ["Midnight Lace (Extension)"]
-        LWC[DApp Connector API]
-        PRV[Local Proving Service]
+    subgraph Logic ["Application Logic (Context)"]
+        MWC[Midnight Wallet Context]
+        POLL[10s Sync Poller]
     end
 
-    subgraph Infrastructure ["Midnight Infrastructure"]
-        NODE[Midnight Preprod Node]
+    subgraph Wallet ["Midnight Lace v4+ (Extension)"]
+        DAPP[DApp Connector API]
+        INTENT[Intent Builder]
+        BAL[Balancing Logic]
+    end
+
+    subgraph Proving ["ZK Layer"]
+        PRV[Local/Remote Prover]
+    end
+
+    subgraph Network ["Midnight Network"]
+        NODE[Preprod Node]
         INDX[Midnight Indexer v4]
     end
 
-    UI <--> API
-    API <--> LWC
-    LWC <--> PRV
-    PRV <--> NODE
-    NODE <--> INDX
-    INDX -- Balance & History --> UI
+    %% Shielded Transfer Flow
+    SEND -- 1. makeTransfer --> MWC
+    MWC -- 2. Build Payload --> DAPP
+    DAPP -- 3. Proof Request --> PRV
+    PRV -- 4. ZK-Proof --> NODE
+
+    %% Atomic Swap Flow
+    SWAP -- 1. makeIntent --> INTENT
+    INTENT -- 2. Alice Balance --> BAL
+    BAL -- 3. Sealed Tx --> PRV
+
+    %% Dashboard Sync Flow
+    INDX -- 1. Live GraphQL Feed --> POLL
+    POLL -- 2. Update State --> DASH
+    NODE -- 3. On-Chain Confirmation --> INDX
 
     %% Styling
-    style UI fill:#6366f1,color:#fff,stroke:#4f46e5,stroke-width:2px
-    style PRV fill:#10b981,color:#fff,stroke:#059669,stroke-width:2px
-    style NODE fill:#0f172a,color:#fff,stroke:#1e293b,stroke-width:2px
-    style LWC fill:#8b5cf6,color:#fff,stroke:#7c3aed,stroke-width:2px
-    style INDX fill:#f59e0b,color:#fff,stroke:#d97706,stroke-width:2px
+    style SEND fill:#6366f1,color:#fff
+    style SWAP fill:#8b5cf6,color:#fff
+    style PRV fill:#10b981,color:#fff,stroke-width:2px
+    style DASH fill:#f59e0b,color:#fff
+    style NODE fill:#0f172a,color:#fff
 ```
 
 ### ZK Transaction Flow
