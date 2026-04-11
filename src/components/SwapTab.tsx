@@ -34,12 +34,12 @@ const SwapTab = () => {
       toast.info(`🔐 Initiating Private Atomic Swap...`);
 
       const microAmount = BigInt(Math.floor(parseFloat(amount) * 1_000_000));
-      const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
+      const NATIVE_ASSET_ID = "0000000000000000000000000000000000000000000000000000000000000000";
 
-      // 1. Create ZK Intent (Lace v4 Pattern)
+      // 1. Create ZK Intent (Following Zswap Alice-Bob Atomic Pattern)
       const unbalancedTx = await walletAPI.makeIntent(
-        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount }],
-        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount, recipient: shieldedAddress }],
+        [{ kind: 'shielded', type: NATIVE_ASSET_ID, value: microAmount }], // What Alice offers
+        [{ kind: 'shielded', type: NATIVE_ASSET_ID, value: microAmount, recipient: shieldedAddress }], // What Alice requests
         { intentId: "random", payFees: true }
       );
 

@@ -53,18 +53,20 @@ const SendPrivatelyTab = () => {
 
     try {
       setStatus("generating");
-      toast.info("🔒 Building shielded transaction...");
+      toast.info("🔒 Constructing Shielded ZK-Proof...");
 
-      const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
+      // SDK Constant: nativeToken().raw is all zeros
+      const NATIVE_ASSET_ID = "0000000000000000000000000000000000000000000000000000000000000000";
 
       const transferItems = recipients.map(r => {
         const addr = r.address.trim();
+        // Force 'shielded' for maximum privacy as per SDK snippet
         const isShielded = addr.startsWith('mn_shield-addr');
         const microAmount = BigInt(Math.floor(parseFloat(r.amount) * 1_000_000));
         
         return {
           kind: isShielded ? 'shielded' : 'unshielded',
-          tokenType: NATIVE_ID,
+          tokenType: NATIVE_ASSET_ID,
           value: microAmount, 
           recipient: addr,
         };

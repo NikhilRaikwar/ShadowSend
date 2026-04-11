@@ -1,5 +1,5 @@
 import { useMidnightWallet } from "@/contexts/MidnightWalletContext";
-import { Shield, ArrowUpRight, Clock, Info, ExternalLink, Lock, EyeOff, Eye, Zap, RefreshCw } from "lucide-react";
+import { Shield, Clock, ExternalLink, Lock, EyeOff, Zap, RefreshCw, Database, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import DustRegistration from "./DustRegistration";
 
@@ -12,15 +12,15 @@ const PrivacyDashboard = () => {
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
-      {/* CRITICAL: DUST Onboarding for first-time users */}
+    <div className="space-y-4 animate-in fade-in duration-500 pb-4">
+      {/* ⚠️ DUST Required check (Onboarding) */}
       <DustRegistration />
 
-      {/* Real-time Balances */}
+      {/* ── SDK State: Protected Resources ── */}
       <div className="space-y-3">
         <div className="flex justify-between items-center px-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-            Midnight Portfolio
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-2">
+            <Database size={12} /> Midnight Ledger State
           </span>
           <button 
             onClick={() => refreshAll()}
@@ -31,95 +31,108 @@ const PrivacyDashboard = () => {
         </div>
         
         <div className="space-y-2">
-          {/* tNIGHT Balance Card */}
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex justify-between items-center group hover:bg-white/[0.07] transition-all">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight flex items-center gap-1.5 mb-1">
-                <Shield size={10} className="text-purple-400" /> Global tNIGHT Identity
+          {/* Main Shielded Pool Card (SDK: state.shielded.balances) */}
+          <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/20 flex justify-between items-center group relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-1 opacity-10">
+               <Lock size={80} />
+            </div>
+            <div className="flex flex-col relative z-10">
+              <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                <Shield size={10} /> Private Pool (Shielded tNIGHT)
               </span>
-              <span className="text-2xl font-black text-white font-mono tracking-tighter">
-                {balances.tNIGHT || "0.0000"} <span className="text-xs font-normal text-slate-500 uppercase">tNIGHT</span>
+              <span className="text-3xl font-black text-white font-mono tracking-tighter">
+                {balances.tNIGHT_SHIELDED || "0.0000"} <span className="text-xs font-normal text-slate-500 uppercase">tNIGHT</span>
               </span>
+              <div className="flex items-center gap-3 mt-2">
+                 <div className="flex items-center gap-1 text-[9px] text-slate-500 font-bold uppercase">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Available Coins
+                 </div>
+                 <div className="flex items-center gap-1 text-[9px] text-slate-500 font-bold uppercase">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50" /> Pending Coins
+                 </div>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            {/* tDUST Card (The Gas Resource) */}
-            <div className="p-3.5 bg-sky-500/5 rounded-xl border border-sky-500/10 flex flex-col gap-1 hover:bg-sky-500/10 transition-colors">
-              <span className="text-[9px] text-sky-400 font-bold uppercase tracking-tight flex items-center gap-1.5">
-                <Zap size={10} /> tDUST (Energy)
+            {/* Public Balance (SDK: state.unshielded.balances) */}
+            <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1 hover:bg-white/[0.08] transition-colors">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tight flex items-center gap-1.5">
+                🌐 Public Balance
+              </span>
+              <span className="text-sm font-black text-white font-mono">
+                {balances.tNIGHT_UNSHIELDED || "0.0000"}
+              </span>
+            </div>
+            
+            {/* DUST Energy (SDK: state.dust.walletBalance) */}
+            <div className="p-3.5 bg-amber-500/5 rounded-xl border border-amber-500/10 flex flex-col gap-1 hover:bg-amber-500/10 transition-colors">
+              <span className="text-[9px] text-amber-500 font-bold uppercase tracking-tight flex items-center gap-1.5">
+                <Zap size={10} /> DUST (Energy/Fees)
               </span>
               <span className="text-sm font-black text-white font-mono">
                 {balances.tDUST || "0.0000"}
-              </span>
-            </div>
-            {/* Private Pool */}
-            <div className="p-3.5 bg-emerald-500/5 rounded-xl border border-emerald-500/10 flex flex-col gap-1 hover:bg-emerald-500/10 transition-colors">
-              <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-tight flex items-center gap-1.5">
-                <EyeOff size={10} /> Shielded Pool
-              </span>
-              <span className="text-sm font-black text-white font-mono">
-                {balances.tNIGHT_SHIELDED || "0.0000"}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Activity Logs */}
+      {/* ── Transaction history (SDK: transactionHistory) ── */}
       <div className="space-y-3 pt-2">
         <div className="flex justify-between items-center px-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-            Identity Persistence
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-2">
+            <Activity size={12} /> ZK-Persistence Status
           </span>
           <div className="flex items-center gap-1.5">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-             <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">Synced</span>
+             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+             <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">Live Sync</span>
           </div>
         </div>
 
         <div className="bg-white/5 rounded-2xl border border-white/10 divide-y divide-white/5 overflow-hidden font-mono">
           {!isConnected ? (
             <div className="p-10 text-center text-slate-600 italic text-xs">
-              Waiting for identity connection...
+              Connect Identity to view history...
             </div>
           ) : transactions.length === 0 ? (
             <div className="p-10 text-center text-slate-600 italic text-xs flex flex-col items-center gap-3">
-              <div className="p-3 bg-white/5 rounded-full opacity-20"><Lock size={20} /></div>
-              No recent ZK-Logs found.
+              No recent history in Ledger.
             </div>
           ) : (
             transactions.map((tx, i) => (
               <motion.div 
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 key={tx.txHash || i} 
-                className="p-3.5 flex items-center justify-between hover:bg-white/[0.08] transition-colors group"
+                className="p-3.5 flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${tx.blockHeight ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                    {tx.blockHeight ? <ShieldCheck size={14} /> : <Clock size={14} className="animate-pulse" />}
+                  <div className={`p-2 rounded-lg ${getTxType(tx) === 'Shielded' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                    {getTxType(tx) === 'Shielded' ? <Lock size={14} /> : <Database size={14} />}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[9px] text-slate-500 leading-none mb-1 uppercase font-bold tracking-tighter">
-                      {tx.blockHeight ? `CONFIRMED BH-${tx.blockHeight}` : 'GENERATING PROOF'}
+                      {tx.blockHeight ? `Settled on Midnight` : 'Proof Generation'}
                     </span>
                     <span className="text-[10px] text-white font-bold">
-                      {tx.txHash ? `${tx.txHash.slice(0, 14)}...` : 'Processing Identity...'}
+                      {tx.txHash ? `${tx.txHash.slice(0, 16)}...` : 'Generating...'}
                     </span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className={`text-[8px] px-2 py-0.5 rounded-md text-white font-bold uppercase tracking-widest ${getTxType(tx) === 'Shielded' ? 'bg-purple-500/30' : 'bg-blue-500/30'}`}>
-                    {getTxType(tx)}
-                  </span>
-                  <a 
+                   <div className="flex items-center gap-1.5">
+                      <span className={`text-[8px] px-2 py-0.5 rounded-md text-white font-bold uppercase tracking-widest ${getTxType(tx) === 'Shielded' ? 'bg-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]' : 'bg-blue-500/30'}`}>
+                        {getTxType(tx)}
+                      </span>
+                   </div>
+                   <a 
                     href={`https://explorer.preprod.midnight.network/transaction/${tx.txHash}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-1 hover:text-purple-400 transition-colors"
+                    className="text-[9px] text-slate-600 mt-1.5 flex items-center gap-1 hover:text-purple-400 transition-colors"
                   >
-                    SCAN <ExternalLink size={8} />
+                    TX-SCAN <ExternalLink size={8} />
                   </a>
                 </div>
               </motion.div>
@@ -128,18 +141,14 @@ const PrivacyDashboard = () => {
         </div>
       </div>
 
-      <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10 flex gap-4 items-start">
-        <Info className="text-purple-400 flex-shrink-0 mt-0.5" size={16} />
-        <p className="text-[10px] text-slate-400 leading-relaxed">
-          <span className="text-purple-300 font-bold uppercase tracking-tight">System Model</span>: Hold tNIGHT to generate DUST energy. Transactions use DUST for zero-knowledge proving fees, keeping your NIGHT balance protected.
+      <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex gap-4 items-center">
+        <Info className="text-slate-500 flex-shrink-0" size={16} />
+        <p className="text-[9px] text-slate-500 leading-relaxed uppercase font-bold tracking-tighter">
+          Shielded history is only visible to your identity and is not indexable by public scrapers.
         </p>
       </div>
     </div>
   );
 };
-
-const ShieldCheck = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
-);
 
 export default PrivacyDashboard;
