@@ -16,8 +16,8 @@
 
 | Resource | Link |
 | :--- | :--- |
-| 🎬 **Demo Video** | [Watch Demo](https://docs.google.com/presentation/d/1h4nY2MAzta08UREP494CqoZyVh64QY7e/edit?usp=sharing) |
-| 📊 **Presentation (PPT)** | [View Slides](https://docs.google.com/presentation/d/1h4nY2MAzta08UREP494CqoZyVh64QY7e/edit?usp=sharing) |
+| 🎬 **Demo Video** | [Watch Demo](https://youtu.be/KJ8U70i7r6Q) |
+| 📊 **Presentation (PPT)** | [View Slides](https://docs.google.com/presentation/d/1Pzq_xL7cikPCxJ9HY_4yjJ7NUnwhqO7LS74zEXajCx4/edit?usp=sharing) |
 | 🐙 **GitHub** | [NikhilRaikwar/ShadowSend](https://github.com/NikhilRaikwar/ShadowSend) |
 | 🌐 **Live dApp** | [shadowsend.vercel.app](https://shadowsend.vercel.app) |
 | 🐦 **Builder** | [@NikhilRaikwarr](https://x.com/NikhilRaikwarr) |
