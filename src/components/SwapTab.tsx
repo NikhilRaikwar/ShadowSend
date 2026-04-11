@@ -14,39 +14,67 @@ const SwapTab = () => {
 
   const handleSwap = async () => {
     if (!isConnected || !walletAPI) {
-      toast.error("Connect your Lace wallet first");
+      console.error("[SHADOW-SWAP] Disconnect detected. Please connect your Lace wallet.");
+      toast.error("Connect your Midnight Lace wallet first");
       return;
     }
 
     if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Enter a valid amount");
+      toast.error("Enter a valid swap amount");
+      return;
+    }
+
+    // CRITICAL FIX: Guard for Lace Version 4+
+    if (!walletAPI.makeIntent && !walletAPI.initSwap) {
+      console.warn("[SHADOW-SWAP] Legacy Wallet Detected: API v4+ Required.");
+      toast.error("Private Swaps require Midnight Lace v4+. Please update your wallet extension.");
       return;
     }
 
     try {
       setStatus("exchanging");
+      console.log("[SHADOW-SWAP] Step 1: Formulating Atomic Intent payload...");
       toast.info(`🔐 Initiating Private Atomic Swap...`);
 
       const microAmount = BigInt(Math.floor(parseFloat(amount) * 1_000_000));
-      const NATIVE_ID = "0000000000000000000000000000000000000000000000000000000000000000";
+      const NATIVE_ASSET_ID = "0000000000000000000000000000000000000000000000000000000000000000";
 
-      // 1. Create Atomic Intent (Offering and Requesting)
-      const unbalancedTx = await walletAPI.makeIntent(
-        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount }],
-        [{ kind: 'shielded', type: NATIVE_ID, value: microAmount, recipient: shieldedAddress }],
+      // 1. Create ZK Intent (Following Zswap Alice-Bob Atomic Pattern)
+      console.log("[SHADOW-SWAP] Step 2: REQUESTING INTENT (Calling Prover 6300). Wait for ZK construction...");
+      
+      const swapOutputs = [
+        {
+          kind: 'shielded',
+          type: NATIVE_ASSET_ID,
+          tokenType: NATIVE_ASSET_ID,
+          value: microAmount,
+          recipient: ownAddress!,
+        },
+      ] as any[];
+
+      const intentPromise = walletAPI.makeIntent(
+        [{ kind: 'shielded', type: NATIVE_ASSET_ID, tokenType: NATIVE_ASSET_ID, value: microAmount }], 
+        swapOutputs, 
         { intentId: "random", payFees: true }
       );
+      const intentTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Intent generation taking too long. Ensure Prover is reachable.")), 600000)
+      );
 
-      toast.info("💎 Balancing Intent Transaction...");
+      const unbalancedTx = await Promise.race([intentPromise, intentTimeout]) as any;
+      console.log("[SHADOW-SWAP] Step 3: INTENT CREATED. Finalizing ZK-Proof...");
+
+      // 2. Finalize (Balance & Proof)
+      const sealedTx = await walletAPI.balanceSealedTransaction(unbalancedTx);
+      console.log("[SHADOW-SWAP] Step 4: PROOF GENERATED. Submitting...");
       
-      // 2. Balance the sealed transaction (As per official docs example)
-      const balancedTx = await walletAPI.balanceSealedTransaction(unbalancedTx);
+      const result = await walletAPI.submitTransaction(sealedTx);
 
-      // 3. Submit the finalized transaction
-      const result = await walletAPI.submitTransaction(balancedTx);
-
-      const txHash = typeof result === 'string' ? result : result.txHash;
-      if (txHash) addPendingTx(txHash, 'shielded');
+      const txHash = typeof result === 'string' ? result : (result?.txHash || result?.id || "");
+      if (txHash) {
+        console.log("[SHADOW-SWAP] ✅ SWAP SUBMITTED SUCCESSFULLY. Hash:", txHash);
+        addPendingTx(txHash, 'shielded');
+      }
 
       await refreshAll();
       toast.success("🔥 Private Swap Settled & Submitted!");
@@ -54,8 +82,19 @@ const SwapTab = () => {
       setAmount("");
       setTimeout(() => setStatus("idle"), 5000);
     } catch (e: any) {
-      console.error("Swap failed", e);
-      toast.error(`Swap Failed: ${e.message}`);
+      console.error("[SHADOW-SWAP] ❌ SWAP FAILURE ❌");
+      const errorDetail = e.cause?.message || e.message || "Unknown error";
+      console.error("[SHADOW-SWAP] Detail:", errorDetail);
+      console.log("[SHADOW-SWAP] Full Error Object:", e);
+      
+      if (e._id === 'FiberFailure') {
+        toast.error(`Swap Error: ${errorDetail || "Ensure you have shielded funds and no pending txs"}`);
+      } else if (e.message?.includes('prover') || e.message?.includes('6300')) {
+        toast.error("Prover Error: Ensure Docker is active on 6300");
+      } else {
+        toast.error(`Swap Failed: ${errorDetail}`);
+      }
+      
       setStatus("error");
       setTimeout(() => setStatus("idle"), 3000);
     }
@@ -63,19 +102,18 @@ const SwapTab = () => {
 
   return (
     <div className="space-y-4">
-      {/* Balance display cards omitted for brevity, same as previous version */}
       <div className="flex items-center justify-between px-1">
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
             Available Balance
           </span>
-          <span className="text-xs sm:text-sm text-foreground font-medium">
-            {(balances[tokenFrom] || "0.00") + " " + tokenFrom}
+          <span className="text-xs sm:text-sm text-foreground font-medium font-mono">
+            {(balances[tokenFrom] || "0.0000") + " " + tokenFrom}
           </span>
         </div>
         <div className="flex items-center gap-2 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
-          <Zap size={12} className="text-purple-400" />
-          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-tighter">Verified Logic</span>
+          <Zap size={10} className="text-purple-400" />
+          <span className="text-[9px] font-bold text-purple-400 uppercase tracking-tighter">SDX V4 Vetted</span>
         </div>
       </div>
 
@@ -87,15 +125,15 @@ const SwapTab = () => {
         </div>
 
         <div className="flex gap-2">
-          <div className="flex-1 flex flex-col gap-2 p-3 bg-white/5 rounded-xl border border-white/10 group">
+          <div className="flex-1 flex flex-col gap-2 p-3 bg-white/5 rounded-xl border border-white/10 group focus-within:border-purple-500/50 transition-all">
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">You Offer</span>
             <div className="flex gap-2">
               <input
-                placeholder="0.00"
+                placeholder="0.0000"
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="flex-1 glass-input px-3 py-2.5 bg-transparent text-foreground text-sm outline-none font-mono focus:border-purple-500/50 transition-colors"
+                className="flex-1 glass-input px-3 py-2.5 bg-transparent text-foreground text-sm outline-none font-mono"
               />
               <div className="w-28 flex-shrink-0">
                 <TokenSelector value={tokenFrom} onChange={setTokenFrom} />
@@ -105,22 +143,22 @@ const SwapTab = () => {
         </div>
 
         <div className="flex justify-center -my-2 relative z-30">
-          <div className="p-1.5 bg-slate-900 border border-white/10 rounded-lg text-purple-400">
+          <div className="p-1.5 bg-slate-900 border border-white/10 rounded-lg text-purple-400 shadow-xl">
             <ArrowDown size={14} />
           </div>
         </div>
 
         <div className="flex gap-2">
           <div className="flex-1 flex flex-col gap-2 p-3 bg-white/5 rounded-xl border border-white/10 border-dashed">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">You Request</span>
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">You Request (Shielded)</span>
             <div className="flex gap-2">
               <input
-                placeholder="0.00"
+                placeholder="0.0000"
                 readOnly
                 value={amount}
                 className="flex-1 glass-input px-3 py-2.5 bg-white/5 text-foreground/50 text-sm outline-none font-mono"
               />
-              <div className="w-28 flex-shrink-0 opacity-80">
+              <div className="w-28 flex-shrink-0 opacity-80 cursor-not-allowed">
                 <TokenSelector value={tokenTo} onChange={setTokenTo} />
               </div>
             </div>
@@ -128,12 +166,12 @@ const SwapTab = () => {
         </div>
       </div>
 
-      <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-        <Info className="text-sky-400 flex-shrink-0 mt-0.5" size={14} />
+      <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 flex gap-3 items-start">
+        <AlertCircle className="text-blue-400 flex-shrink-0 mt-0.5" size={14} />
         <div>
-          <p className="text-[10px] text-white font-bold uppercase tracking-tighter mb-0.5">Balancing Protocol</p>
+          <p className="text-[10px] text-white font-bold uppercase tracking-tighter mb-0.5">Atomic Protocol</p>
           <p className="text-[10px] text-slate-400 leading-tight">
-            Transactions are balanced natively to ensure zero-collision when settling shielded intents.
+            Trades are settled in a single ZK-Proof. Either both parties receive assets, or the transaction fails entirely. No counterparty risk.
           </p>
         </div>
       </div>
@@ -151,10 +189,10 @@ const SwapTab = () => {
             "bg-secondary text-muted-foreground cursor-not-allowed"
           }`}
         >
-          {status === "idle" && <><RefreshCw className="w-4 h-4" /> Finalize Swap</>}
-          {status === "exchanging" && <><ShieldCheck className="w-4 h-4 animate-pulse text-emerald-400" /> Constructing Snark...</>}
-          {status === "confirmed" && <>✅ Swap Completed</>}
-          {status === "error" && <>❌ Swap Error</>}
+          {status === "idle" && <><RefreshCw className="w-4 h-4" /> Initialize Private Swap</>}
+          {status === "exchanging" && <><ShieldCheck className="w-4 h-4 animate-pulse text-emerald-400" /> Computing Identity...</>}
+          {status === "confirmed" && <>✅ Swap Finalized</>}
+          {status === "error" && <>❌ Swap Interrupted</>}
         </motion.button>
       </div>
     </div>
